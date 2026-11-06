@@ -49,13 +49,11 @@ describe("Drive image preview", () => {
       <SheetImagePreview url={url} label={photoLabel} refreshKey={{}} />,
     );
     await screen.findByText("Permission required");
-    jest
-      .mocked(resolveImageSource)
-      .mockResolvedValue({
-        url: "data:image/png;base64,AQID",
-        thumbnailUrl: "data:image/png;base64,AQID",
-        mimeType: "image/png",
-      });
+    jest.mocked(resolveImageSource).mockResolvedValue({
+      url: "data:image/png;base64,AQID",
+      thumbnailUrl: "data:image/png;base64,AQID",
+      mimeType: "image/png",
+    });
     view.rerender(
       <SheetImagePreview url={url} label={photoLabel} refreshKey={{}} />,
     );

@@ -83,12 +83,10 @@ describe("spreadsheet imports", () => {
   });
 
   it("keeps all public CSV columns without inventing unavailable cell colors", async () => {
-    global.fetch = jest
-      .fn()
-      .mockResolvedValue({
-        ok: true,
-        text: async () => 'Supplier,Quantity,Notes\nTiles Inc,12,""',
-      });
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: async () => 'Supplier,Quantity,Notes\nTiles Inc,12,""',
+    });
     const result = await fetchSheetData(
       "https://docs.google.com/spreadsheets/d/example",
       "Materials",
