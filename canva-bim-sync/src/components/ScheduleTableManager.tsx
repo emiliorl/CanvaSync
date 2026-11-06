@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Button,
   Rows,
@@ -23,6 +23,12 @@ interface ScheduleTableManagerProps {
   disabled?: boolean;
 }
 
+function computeFingerprint(records: BimRoomRecord[]): string {
+  return records
+    .map((r) => `${r.revitId}:${r.roomName}:${r.finishSpec}:${r.badgeColorHex}`)
+    .join("|");
+}
+
 export const ScheduleTableManager: React.FC<ScheduleTableManagerProps> = ({
   records,
   sheetTitle,
@@ -36,15 +42,59 @@ export const ScheduleTableManager: React.FC<ScheduleTableManagerProps> = ({
   const [isInjecting, setIsInjecting] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
+  const storageKey = `canvasync_ver_${sheetTitle || "default"}_${selectedTab || "main"}`;
+  const [lastInsertedFingerprint, setLastInsertedFingerprint] = useState<string | null>(null);
+  const [lastInsertedTime, setLastInsertedTime] = useState<string | null>(null);
+
+  // Load version tracking state on mount or tab change
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setLastInsertedFingerprint(parsed.fingerprint || null);
+        setLastInsertedTime(parsed.time || null);
+      } else {
+        setLastInsertedFingerprint(null);
+        setLastInsertedTime(null);
+      }
+    } catch {
+      setLastInsertedFingerprint(null);
+      setLastInsertedTime(null);
+    }
+  }, [storageKey]);
+
+  const currentFingerprint = computeFingerprint(records);
+  const hasInserted = lastInsertedFingerprint !== null;
+  const isUpToDate = hasInserted && lastInsertedFingerprint === currentFingerprint;
+  const hasUpdates = hasInserted && !isUpToDate;
+
+  const markVersionInserted = () => {
+    const nowTime = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    setLastInsertedFingerprint(currentFingerprint);
+    setLastInsertedTime(nowTime);
+    try {
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({ fingerprint: currentFingerprint, time: nowTime }),
+      );
+    } catch {
+      // Ignore localStorage errors
+    }
+  };
+
   const handleAddTable = async () => {
     setIsInjecting(true);
     try {
       const result = await injectScheduleTable(records, { includeImages });
+      markVersionInserted();
       onSuccess(
-        `Added schedule table (${result.rowsCount} rows) to active slide.`,
+        `Added schedule (${result.rowsCount} rows${
+          result.imagesCount > 0 ? `, ${result.imagesCount} material images` : ""
+        }) to slide.`,
       );
     } catch (err: any) {
-      onError(err?.message || "Failed to add table to Canva slide.");
+      onError(err?.message || "Failed to add schedule to Canva slide.");
     } finally {
       setIsInjecting(false);
     }
@@ -53,15 +103,14 @@ export const ScheduleTableManager: React.FC<ScheduleTableManagerProps> = ({
   const handleSyncTable = async () => {
     setIsSyncing(true);
     try {
-      // 1. Refresh latest data from Google Sheet
       await onRefresh();
-      // 2. Safely sync matching elements
       const syncResult = await syncRoomElementsInPlace(records);
+      markVersionInserted();
       onSuccess(
-        `Synchronized schedule from Google Sheet (${syncResult.updatedCount} updates).`,
+        `Synchronized schedule with Google Sheet (${syncResult.updatedCount} text updates).`,
       );
     } catch (err: any) {
-      onError(err?.message || "Failed to synchronize schedule table.");
+      onError(err?.message || "Failed to synchronize schedule.");
     } finally {
       setIsSyncing(false);
     }
@@ -96,6 +145,45 @@ export const ScheduleTableManager: React.FC<ScheduleTableManagerProps> = ({
             <Text size="small" tone="secondary">
               {records.length} {records.length === 1 ? "row" : "rows"}
             </Text>
+          </div>
+
+          {/* Version Tracking Status Badge */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "6px 10px",
+              backgroundColor: isUpToDate ? "#F0FDF4" : hasUpdates ? "#EFF6FF" : "#F1F5F9",
+              border: `1px solid ${isUpToDate ? "#BBF7D0" : hasUpdates ? "#BFDBFE" : "#E2E8F0"}`,
+              borderRadius: "5px",
+              marginBottom: "10px",
+              fontSize: "11px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <span
+                style={{
+                  width: "6px",
+                  height: "6px",
+                  borderRadius: "50%",
+                  backgroundColor: isUpToDate ? "#16A34A" : hasUpdates ? "#2563EB" : "#94A3B8",
+                  flexShrink: 0,
+                }}
+              />
+              <span style={{ fontWeight: 600, color: isUpToDate ? "#15803D" : hasUpdates ? "#1D4ED8" : "#475569" }}>
+                {isUpToDate
+                  ? "Slide is up to date"
+                  : hasUpdates
+                  ? "Updates available in Google Sheet"
+                  : "Not yet inserted onto slide"}
+              </span>
+            </div>
+            {lastInsertedTime && (
+              <span style={{ color: "#64748B", fontSize: "10px" }}>
+                Synced {lastInsertedTime}
+              </span>
+            )}
           </div>
 
           {/* Clean Micro Preview of Columns */}
@@ -180,36 +268,40 @@ export const ScheduleTableManager: React.FC<ScheduleTableManagerProps> = ({
           )}
         </div>
 
-        {/* Option: Include companion render images */}
+        {/* Option: Include material / texture images */}
         {hasImages && (
           <Checkbox
-            label="Include 3D render images"
+            label="Include material images"
             checked={includeImages}
             onChange={(_, checked) => setIncludeImages(checked)}
             disabled={disabled || isInjecting || isSyncing}
           />
         )}
 
-        {/* Primary Action: Add Complete Schedule Table to Canva Slide */}
+        {/* Add Table to Slide */}
         <Button
-          variant="primary"
+          variant={hasInserted ? "secondary" : "primary"}
           onClick={handleAddTable}
           disabled={disabled || isInjecting || isSyncing}
           loading={isInjecting}
           stretch
         >
-          Add Table to Slide
+          {hasInserted ? "Re-insert Table on Slide" : "Add Table to Slide"}
         </Button>
 
-        {/* Sync Action: Re-fetch latest sheet data and sync */}
+        {/* Sync Action: Enabled only when updates exist or when inserted */}
         <Button
-          variant="secondary"
+          variant={hasUpdates ? "primary" : "secondary"}
           onClick={handleSyncTable}
-          disabled={disabled || isInjecting || isSyncing}
+          disabled={disabled || isInjecting || isSyncing || isUpToDate || !hasInserted}
           loading={isSyncing}
           stretch
         >
-          Sync Table from Sheet
+          {isUpToDate
+            ? "Table is Up to Date"
+            : hasUpdates
+            ? "Sync Updates from Sheet"
+            : "Sync Table from Sheet"}
         </Button>
       </Rows>
     </Box>

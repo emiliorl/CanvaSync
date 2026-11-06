@@ -1,4 +1,5 @@
 import {
+  addElementAtPoint,
   addElementAtCursor,
   editContent,
   type TableElement,
@@ -18,8 +19,103 @@ function inferMimeType(url: string): ImageMimeType {
 }
 
 /**
- * Inserts the complete architectural schedule table (headers + all rows) onto the slide.
- * Cell colors from Revit/Google Sheets are preserved in the Revit_ID column.
+ * Places schedule rows on absolute presentation slides (like 800x600 or 1920x1080)
+ * where cursor-based table streams are not supported.
+ */
+async function injectPresentationSchedule(
+  records: BimRoomRecord[],
+  options: { includeImages?: boolean } = {},
+): Promise<number> {
+  const startX = 60;
+  let currentY = 50;
+
+  // 1. Header banner
+  const headerElement = {
+    type: "text" as const,
+    children: ["Material & Finish Schedule"],
+    top: currentY,
+    left: startX,
+    width: 680,
+    fontSize: 22,
+    fontWeight: "bold" as const,
+    color: "#0F172A",
+  };
+
+  try {
+    await addElementAtPoint(headerElement);
+  } catch {
+    // If addElementAtPoint fails, ignore
+  }
+
+  currentY += 45;
+
+  // 2. Schedule rows
+  for (const room of records) {
+    const rowTitle = `${room.revitId}  •  ${room.roomName}${room.areaLabel ? ` (${room.areaLabel})` : ""}`;
+    const rowSpec = room.finishSpec || "Standard Specification";
+
+    const rowElement = {
+      type: "text" as const,
+      children: [`${rowTitle}\n${rowSpec}`],
+      top: currentY,
+      left: startX,
+      width: options.includeImages ? 440 : 680,
+      fontSize: 13,
+      color: "#1E293B",
+    };
+
+    try {
+      await addElementAtPoint(rowElement);
+    } catch {
+      // Continue
+    }
+
+    currentY += 65;
+  }
+
+  // 3. Companion material/texture images if present
+  let imagesCount = 0;
+  if (options.includeImages) {
+    let imgY = 95;
+    for (const room of records.slice(0, 3)) {
+      if (room.imageUrl && room.imageUrl.startsWith("http")) {
+        try {
+          const mimeType = inferMimeType(room.imageUrl);
+          const uploadRes = await upload({
+            type: "image",
+            mimeType,
+            url: room.imageUrl,
+            thumbnailUrl: room.imageUrl,
+            aiDisclosure: "none",
+            name: `${room.revitId}_material`.slice(0, 50),
+          });
+
+          if (uploadRes?.ref) {
+            await addElementAtPoint({
+              type: "image",
+              ref: uploadRes.ref,
+              altText: { text: `${room.roomName} Material`, decorative: false },
+              top: imgY,
+              left: 520,
+              width: 220,
+              height: 140,
+            });
+            imgY += 155;
+            imagesCount++;
+          }
+        } catch {
+          // Continue if individual image fails
+        }
+      }
+    }
+  }
+
+  return imagesCount;
+}
+
+/**
+ * Inserts the complete schedule table (headers + all rows) onto the slide.
+ * Automatically adapts between responsive docs (native table) and presentation slides.
  */
 export async function injectScheduleTable(
   records: BimRoomRecord[],
@@ -117,35 +213,46 @@ export async function injectScheduleTable(
     rows: [headerRow, ...dataRows],
   };
 
-  await addElementAtCursor(tableElement);
-
-  // 2. Upload and place companion render images if requested
   let imagesCount = 0;
-  if (options.includeImages) {
-    for (const room of records.slice(0, 3)) {
-      if (room.imageUrl && room.imageUrl.startsWith("http")) {
-        try {
-          const mimeType = inferMimeType(room.imageUrl);
-          const uploadRes = await upload({
-            type: "image",
-            mimeType,
-            url: room.imageUrl,
-            thumbnailUrl: room.imageUrl,
-            aiDisclosure: "none",
-            name: `${room.revitId}_render`.slice(0, 50),
-          });
-          if (uploadRes?.ref) {
-            await addElementAtCursor({
+
+  try {
+    // Attempt native table insertion (supported on responsive doc contexts)
+    await addElementAtCursor(tableElement);
+
+    if (options.includeImages) {
+      for (const room of records.slice(0, 3)) {
+        if (room.imageUrl && room.imageUrl.startsWith("http")) {
+          try {
+            const mimeType = inferMimeType(room.imageUrl);
+            const uploadRes = await upload({
               type: "image",
-              ref: uploadRes.ref,
-              altText: { text: `${room.roomName} Render`, decorative: false },
+              mimeType,
+              url: room.imageUrl,
+              thumbnailUrl: room.imageUrl,
+              aiDisclosure: "none",
+              name: `${room.revitId}_material`.slice(0, 50),
             });
-            imagesCount++;
+            if (uploadRes?.ref) {
+              await addElementAtCursor({
+                type: "image",
+                ref: uploadRes.ref,
+                altText: { text: `${room.roomName} Material`, decorative: false },
+              });
+              imagesCount++;
+            }
+          } catch {
+            // Continue
           }
-        } catch {
-          // Continue if individual image fails
         }
       }
+    }
+  } catch (err: any) {
+    const msg = err?.message || String(err);
+    if (msg.includes("unsupported_page_type") || msg.includes("not supported in this context")) {
+      // Fallback for absolute presentation pages (e.g. 800x600, 1920x1080)
+      imagesCount = await injectPresentationSchedule(records, options);
+    } else {
+      throw err;
     }
   }
 
@@ -176,7 +283,7 @@ export async function syncRoomElementsInPlace(
             const currentText = range.readPlaintext();
             if (!currentText || currentText.trim().length === 0) continue;
 
-            // Match specification text
+            // Match specification text or room name
             const isSpecBlock =
               currentText.includes("Finish:") ||
               currentText.includes("Finish_Spec") ||
@@ -198,7 +305,7 @@ export async function syncRoomElementsInPlace(
       },
     );
   } catch (err: any) {
-    // Gracefully handle unsupported_page_type or non-richtext page contexts
+    // Gracefully handle unsupported_page_type on non-richtext page contexts
     console.info("In-place slide text update skipped:", err?.message || err);
   }
 

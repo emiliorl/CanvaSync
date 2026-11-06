@@ -178,64 +178,6 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
   return (
     <Box padding="2u">
       <Rows spacing="1.5u">
-        {/* Google Authentication Status (Un-truncated, compact) */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "8px 12px",
-            backgroundColor: isAuthenticatedGoogle ? "#F0FDF4" : "#F8FAFC",
-            border: `1px solid ${isAuthenticatedGoogle ? "#DCFCE7" : "#E2E8F0"}`,
-            borderRadius: "6px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
-            <span
-              style={{
-                width: "7px",
-                height: "7px",
-                borderRadius: "50%",
-                backgroundColor: isAuthenticatedGoogle ? "#16A34A" : "#94A3B8",
-                flexShrink: 0,
-              }}
-            />
-            <Text size="small">
-              {isAuthenticatedGoogle ? "Connected" : "Google Account"}
-            </Text>
-          </div>
-
-          {isAuthenticatedGoogle ? (
-            <button
-              type="button"
-              onClick={onSignOutGoogle}
-              disabled={isLoading}
-              style={{
-                background: "none",
-                border: "none",
-                padding: "2px 6px",
-                fontSize: "12px",
-                fontWeight: 600,
-                color: "#475569",
-                cursor: "pointer",
-                textDecoration: "underline",
-                whiteSpace: "nowrap",
-                flexShrink: 0,
-              }}
-            >
-              Sign out
-            </button>
-          ) : (
-            <Button
-              variant="secondary"
-              onClick={() => onSignInGoogle()}
-              disabled={isLoading}
-            >
-              Sign in with Google
-            </Button>
-          )}
-        </div>
-
         {/* If user needs to grant Drive permission for the file picker */}
         {driveScopeMissing && isAuthenticatedGoogle && (
           <div

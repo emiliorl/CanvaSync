@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Rows, Title, Text, Alert, Box } from "@canva/app-ui-kit";
+import { Rows, Title, Text, Alert, Box, Button } from "@canva/app-ui-kit";
 import * as styles from "styles/components.css";
 import { SheetConnector } from "../../components/SheetConnector";
 import { ScheduleTableManager } from "../../components/ScheduleTableManager";
@@ -174,6 +174,67 @@ export const App = () => {
             disabled={isLoading}
           />
         )}
+
+        {/* Account Footer at Bottom */}
+        <Box padding="2u">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "8px 12px",
+              backgroundColor: isAuthenticatedGoogle ? "#F0FDF4" : "#F8FAFC",
+              border: `1px solid ${isAuthenticatedGoogle ? "#DCFCE7" : "#E2E8F0"}`,
+              borderRadius: "6px",
+              marginTop: "8px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
+              <span
+                style={{
+                  width: "7px",
+                  height: "7px",
+                  borderRadius: "50%",
+                  backgroundColor: isAuthenticatedGoogle ? "#16A34A" : "#94A3B8",
+                  flexShrink: 0,
+                }}
+              />
+              <Text size="small">
+                {isAuthenticatedGoogle ? "Connected" : "Google Account"}
+              </Text>
+            </div>
+
+            {isAuthenticatedGoogle ? (
+              <button
+                type="button"
+                onClick={handleSignOutGoogle}
+                disabled={isLoading}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: "2px 6px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: "#475569",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
+              >
+                Sign out
+              </button>
+            ) : (
+              <Button
+                variant="secondary"
+                onClick={() => handleSignInGoogle()}
+                disabled={isLoading}
+              >
+                Sign in with Google
+              </Button>
+            )}
+          </div>
+        </Box>
       </Rows>
     </div>
   );
