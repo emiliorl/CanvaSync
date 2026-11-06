@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+canva-bim-sync/node_modules/
+
+# Production build artifacts
+dist/
+canva-bim-sync/dist/
+
+# Environment files & secrets
+.env
+.env.local
+canva-bim-sync/.env
+
+# Logs and temporary files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.swc/
+canva-bim-sync/.swc/
+
+# OS and Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
