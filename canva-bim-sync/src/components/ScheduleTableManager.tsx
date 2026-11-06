@@ -12,8 +12,10 @@ import {
   injectScheduleTable,
   syncRoomElementsInPlace,
 } from "../services/canvaCanvasService";
+import { Translations } from "../utils/i18n";
 
 interface ScheduleTableManagerProps {
+  t: Translations;
   records: BimRoomRecord[];
   sheetTitle?: string;
   selectedTab?: string;
@@ -30,6 +32,7 @@ function computeFingerprint(records: BimRoomRecord[]): string {
 }
 
 export const ScheduleTableManager: React.FC<ScheduleTableManagerProps> = ({
+  t,
   records,
   sheetTitle,
   selectedTab,
@@ -88,13 +91,9 @@ export const ScheduleTableManager: React.FC<ScheduleTableManagerProps> = ({
     try {
       const result = await injectScheduleTable(records, { includeImages });
       markVersionInserted();
-      onSuccess(
-        `Added schedule (${result.rowsCount} rows${
-          result.imagesCount > 0 ? `, ${result.imagesCount} material images` : ""
-        }) to slide.`,
-      );
+      onSuccess(t.addedSuccess(result.rowsCount, result.imagesCount));
     } catch (err: any) {
-      onError(err?.message || "Failed to add schedule to Canva slide.");
+      onError(err?.message || "Error al agregar tabla a la diapositiva.");
     } finally {
       setIsInjecting(false);
     }
@@ -106,11 +105,9 @@ export const ScheduleTableManager: React.FC<ScheduleTableManagerProps> = ({
       await onRefresh();
       const syncResult = await syncRoomElementsInPlace(records);
       markVersionInserted();
-      onSuccess(
-        `Synchronized schedule with Google Sheet (${syncResult.updatedCount} text updates).`,
-      );
+      onSuccess(t.syncSuccess(syncResult.updatedCount));
     } catch (err: any) {
-      onError(err?.message || "Failed to synchronize schedule.");
+      onError(err?.message || "Error al sincronizar la tabla.");
     } finally {
       setIsSyncing(false);
     }
@@ -140,10 +137,10 @@ export const ScheduleTableManager: React.FC<ScheduleTableManagerProps> = ({
             }}
           >
             <Title size="small">
-              {sheetTitle || selectedTab || "Finish Schedule"}
+              {sheetTitle || selectedTab || "Tabla de Acabados"}
             </Title>
             <Text size="small" tone="secondary">
-              {records.length} {records.length === 1 ? "row" : "rows"}
+              {records.length} {records.length === 1 ? t.row : t.rows}
             </Text>
           </div>
 
@@ -173,15 +170,15 @@ export const ScheduleTableManager: React.FC<ScheduleTableManagerProps> = ({
               />
               <span style={{ fontWeight: 600, color: isUpToDate ? "#15803D" : hasUpdates ? "#1D4ED8" : "#475569" }}>
                 {isUpToDate
-                  ? "Slide is up to date"
+                  ? t.slideUpToDate
                   : hasUpdates
-                  ? "Updates available in Google Sheet"
-                  : "Not yet inserted onto slide"}
+                  ? t.updatesAvailable
+                  : t.notInserted}
               </span>
             </div>
             {lastInsertedTime && (
               <span style={{ color: "#64748B", fontSize: "10px" }}>
-                Synced {lastInsertedTime}
+                {t.syncedAt} {lastInsertedTime}
               </span>
             )}
           </div>
@@ -202,9 +199,9 @@ export const ScheduleTableManager: React.FC<ScheduleTableManagerProps> = ({
               marginBottom: "6px",
             }}
           >
-            <div>Revit ID</div>
-            <div>Space</div>
-            <div>Finish Spec</div>
+            <div>{t.revitId}</div>
+            <div>{t.space}</div>
+            <div>{t.finishSpec}</div>
           </div>
 
           {/* Sample Preview Rows */}
@@ -262,7 +259,7 @@ export const ScheduleTableManager: React.FC<ScheduleTableManagerProps> = ({
           {records.length > 3 && (
             <div style={{ marginTop: "6px", textAlign: "center" }}>
               <Text size="small" tone="secondary">
-                +{records.length - 3} more schedule rows
+                +{records.length - 3} {t.moreRows}
               </Text>
             </div>
           )}
@@ -271,14 +268,14 @@ export const ScheduleTableManager: React.FC<ScheduleTableManagerProps> = ({
         {/* Option: Include material / texture images */}
         {hasImages && (
           <Checkbox
-            label="Include material images"
+            label={t.includeMaterialImages}
             checked={includeImages}
             onChange={(_, checked) => setIncludeImages(checked)}
             disabled={disabled || isInjecting || isSyncing}
           />
         )}
 
-        {/* Add Table to Slide */}
+        {/* Add / Re-insert Table to Slide */}
         <Button
           variant={hasInserted ? "secondary" : "primary"}
           onClick={handleAddTable}
@@ -286,7 +283,7 @@ export const ScheduleTableManager: React.FC<ScheduleTableManagerProps> = ({
           loading={isInjecting}
           stretch
         >
-          {hasInserted ? "Re-insert Table on Slide" : "Add Table to Slide"}
+          {hasInserted ? t.reinsertTable : t.addTableToSlide}
         </Button>
 
         {/* Sync Action: Enabled only when updates exist or when inserted */}
@@ -298,10 +295,10 @@ export const ScheduleTableManager: React.FC<ScheduleTableManagerProps> = ({
           stretch
         >
           {isUpToDate
-            ? "Table is Up to Date"
+            ? t.tableUpToDate
             : hasUpdates
-            ? "Sync Updates from Sheet"
-            : "Sync Table from Sheet"}
+            ? t.syncUpdates
+            : t.syncFromSheet}
         </Button>
       </Rows>
     </Box>

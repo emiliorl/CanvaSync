@@ -31,11 +31,11 @@ describe("CanvaSync BIM App", () => {
     jest.clearAllMocks();
   });
 
-  it("renders the app title, Google Sign-in button, and Sheet Link field", () => {
+  it("renders the app title and language options", () => {
     renderInTestProvider(<App />);
 
     expect(screen.getByText("CanvaSync")).toBeDefined();
-    expect(screen.getByText("Sign in with Google")).toBeDefined();
-    expect(screen.getByText("Google Sheet Link")).toBeDefined();
+    expect(screen.getByText("ES")).toBeDefined();
+    expect(screen.getByText("EN")).toBeDefined();
   });
 });

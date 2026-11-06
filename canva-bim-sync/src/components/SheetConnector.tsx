@@ -17,12 +17,13 @@ import {
   extractSpreadsheetInfo,
 } from "../services/googleSheetsService";
 import { getActiveGoogleToken } from "../services/googleAuthService";
+import { Translations } from "../utils/i18n";
 
 interface SheetConnectorProps {
+  t: Translations;
   onConnect: (url: string, tabName?: string) => Promise<void>;
   onInspectSheets: (url: string) => Promise<SheetTabInfo[]>;
   onSignInGoogle: (forceConsent?: boolean) => Promise<void>;
-  onSignOutGoogle: () => void;
   isAuthenticatedGoogle: boolean;
   isLoading: boolean;
   availableTabs: SheetTabInfo[];
@@ -32,10 +33,10 @@ interface SheetConnectorProps {
 }
 
 export const SheetConnector: React.FC<SheetConnectorProps> = ({
+  t,
   onConnect,
   onInspectSheets,
   onSignInGoogle,
-  onSignOutGoogle,
   isAuthenticatedGoogle,
   isLoading,
   availableTabs,
@@ -110,11 +111,14 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
           title: found?.name || `Spreadsheet (${tabs.length} tabs)`,
           url: newUrl,
         });
+        // Auto-connect immediately so user doesn't have to click an extra button
+        const defaultTab = tabs[0]?.title;
+        onConnect(newUrl, defaultTab);
       })
       .finally(() => setIsInspecting(false));
   };
 
-  // Auto-inspect sheets when user types/pastes a URL
+  // Auto-inspect and load when user pastes a URL
   useEffect(() => {
     if (url.includes("/spreadsheets/d/")) {
       const timer = setTimeout(() => {
@@ -122,29 +126,29 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
           const { spreadsheetId } = extractSpreadsheetInfo(url);
           setSelectedFileId(spreadsheetId);
           setIsInspecting(true);
-          onInspectSheets(url.trim()).finally(() => setIsInspecting(false));
+          onInspectSheets(url.trim())
+            .then((tabs) => {
+              const defaultTab = tabs[0]?.title;
+              onConnect(url.trim(), defaultTab);
+            })
+            .finally(() => setIsInspecting(false));
         } catch {
           // Incomplete URL while typing, ignore
         }
-      }, 500);
+      }, 600);
       return () => clearTimeout(timer);
     }
     return undefined;
   }, [url]);
-
-  const handleConnect = () => {
-    if (!url.trim()) return;
-    onConnect(url.trim(), selectedTab || undefined);
-  };
 
   // Build spreadsheet select options
   const recentList = getRecentSpreadsheets();
   const fileOptions: { value: string; label: string }[] = [];
 
   if (isDriveLoading) {
-    fileOptions.push({ value: "", label: "Loading Google Spreadsheets..." });
+    fileOptions.push({ value: "", label: t.loadingSpreadsheets });
   } else {
-    fileOptions.push({ value: "", label: "-- Select a Google Spreadsheet --" });
+    fileOptions.push({ value: "", label: t.choosePlaceholder });
   }
 
   driveFiles.forEach((f) => {
@@ -159,13 +163,13 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
     .forEach((s) => {
       fileOptions.push({
         value: s.id,
-        label: `${s.title} (Recent)`,
+        label: `${s.title} (Reciente)`,
       });
     });
 
   fileOptions.push({
     value: "MANUAL",
-    label: "Enter Sheet link manually...",
+    label: t.pasteLinkManually,
   });
 
   const tabOptions = availableTabs.map((t) => ({
@@ -190,7 +194,7 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
           >
             <Rows spacing="1u">
               <Text size="small" tone="secondary">
-                To select spreadsheets from your Google Drive directly in Canva:
+                {t.grantDriveTitle}
               </Text>
               <Button
                 variant="secondary"
@@ -198,7 +202,7 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
                 disabled={isLoading}
                 stretch
               >
-                Grant Drive File Access
+                {t.grantDriveAction}
               </Button>
             </Rows>
           </div>
@@ -207,8 +211,8 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
         {/* Google Spreadsheet Dropdown Selector */}
         {hasFilesToPick && !showManualInput && (
           <FormField
-            label="Select Spreadsheet"
-            description="Choose a spreadsheet from your Google account"
+            label={t.selectSpreadsheet}
+            description={t.selectSpreadsheetDesc}
             control={(props) => (
               <Select
                 {...props}
@@ -237,16 +241,16 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
                 padding: 0,
               }}
             >
-              {showManualInput ? "Back to spreadsheet list" : "Paste link manually"}
+              {showManualInput ? t.backToList : t.pasteLinkManually}
             </button>
           </div>
         )}
 
-        {/* Google Sheet URL Input (when no files found or manual mode active) */}
+        {/* Google Sheet URL Input (when manual input is active) */}
         {(!hasFilesToPick || showManualInput) && (
           <FormField
-            label="Google Sheet Link"
-            description="Link to your architectural or interior finish schedule"
+            label={t.googleSheetLink}
+            description={t.googleSheetLinkDesc}
             control={(props) => (
               <TextInput
                 {...props}
@@ -263,8 +267,8 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
         {/* Sheet Tab Dropdown (shown when tabs exist) */}
         {tabOptions.length > 0 && (
           <FormField
-            label="Select Sheet Page / Tab"
-            description="Choose the schedule page to load"
+            label={t.selectTab}
+            description={t.selectTabDesc}
             control={(props) => (
               <Select
                 {...props}
@@ -277,17 +281,11 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
           />
         )}
 
-        {/* Connect Action Button */}
-        {!hasLoadedRecords && (
-          <Button
-            variant="primary"
-            onClick={handleConnect}
-            disabled={isLoading || !url.trim() || isInspecting}
-            loading={isLoading || isInspecting}
-            stretch
-          >
-            {isInspecting ? "Reading Sheet..." : "Connect Schedule"}
-          </Button>
+        {/* Loading status feedback while reading */}
+        {isInspecting && (
+          <Text size="small" tone="secondary">
+            {t.readingSheet}
+          </Text>
         )}
       </Rows>
     </Box>

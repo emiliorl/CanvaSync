@@ -16,8 +16,17 @@ import {
   clearGoogleSession,
 } from "../../services/googleAuthService";
 import { BimRoomRecord } from "../../types/bim";
+import {
+  type Language,
+  translations,
+  getInitialLanguage,
+  saveLanguagePreference,
+} from "../../utils/i18n";
 
 export const App = () => {
+  const [lang, setLang] = useState<Language>(getInitialLanguage());
+  const t = translations[lang];
+
   const [activeUrl, setActiveUrl] = useState<string>("");
   const [spreadsheetTitle, setSpreadsheetTitle] = useState<string>("");
   const [availableTabs, setAvailableTabs] = useState<SheetTabInfo[]>([]);
@@ -32,18 +41,23 @@ export const App = () => {
     checkIsGoogleAuthenticated().then(setIsAuthenticatedGoogle).catch(() => {});
   }, []);
 
+  const handleToggleLanguage = (newLang: Language) => {
+    setLang(newLang);
+    saveLanguagePreference(newLang);
+  };
+
   const handleSignInGoogle = async (forceConsent: boolean = false) => {
     setIsLoading(true);
     setErrorMessage(null);
     try {
       await requestGoogleAccessToken(forceConsent);
       setIsAuthenticatedGoogle(true);
-      setStatusMessage("Google sign-in completed.");
+      setStatusMessage(lang === "es" ? "Sesión iniciada con Google." : "Google sign-in completed.");
       if (activeUrl) {
         await handleInspectSheets(activeUrl);
       }
     } catch (err: any) {
-      setErrorMessage(err.message || "Google sign-in failed.");
+      setErrorMessage(err.message || (lang === "es" ? "Error al iniciar sesión con Google." : "Google sign-in failed."));
     } finally {
       setIsLoading(false);
     }
@@ -52,7 +66,7 @@ export const App = () => {
   const handleSignOutGoogle = async () => {
     await clearGoogleSession();
     setIsAuthenticatedGoogle(false);
-    setStatusMessage("Signed out of Google.");
+    setStatusMessage(lang === "es" ? "Sesión cerrada." : "Signed out of Google.");
   };
 
   const handleInspectSheets = async (url: string): Promise<SheetTabInfo[]> => {
@@ -67,7 +81,9 @@ export const App = () => {
       }
       return meta.sheets;
     } catch (err: any) {
-      setErrorMessage(err.message || "Could not read sheet pages. Please ensure link is valid.");
+      setErrorMessage(
+        err.message || (lang === "es" ? "No se pudieron leer las pestañas. Verifica el enlace." : "Could not read sheet pages. Please ensure link is valid."),
+      );
       return [];
     }
   };
@@ -89,16 +105,13 @@ export const App = () => {
       }
 
       if (result.records.length === 0) {
-        setErrorMessage("No schedule rows found. Please check column headers (e.g. Revit_ID, Finish_Spec).");
+        setErrorMessage(t.noRowsFound);
         return;
       }
 
       setRecords(result.records);
-      setStatusMessage(
-        `Loaded ${result.records.length} schedule rows from "${result.sheetTitle || selectedTab || 'Sheet'}".`,
-      );
     } catch (err: any) {
-      setErrorMessage(err.message || "Failed to load Google Sheet.");
+      setErrorMessage(err.message || (lang === "es" ? "Error al cargar la hoja de Google." : "Failed to load Google Sheet."));
     } finally {
       setIsLoading(false);
     }
@@ -112,14 +125,51 @@ export const App = () => {
   return (
     <div className={styles.scrollContainer}>
       <Rows spacing="2u">
-        {/* Header */}
+        {/* Header with Title and Language Switcher */}
         <Box padding="2u">
-          <Rows spacing="0.5u">
-            <Title size="medium">CanvaSync</Title>
-            <Text size="small" tone="secondary">
-              Architectural schedule & finish specification bridge
-            </Text>
-          </Rows>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <Rows spacing="0.5u">
+              <Title size="medium">{t.appTitle}</Title>
+              <Text size="small" tone="secondary">
+                {t.appSubtitle}
+              </Text>
+            </Rows>
+            {/* Subtle Language Pill Toggle */}
+            <div style={{ display: "flex", gap: "2px", backgroundColor: "#F1F5F9", padding: "2px", borderRadius: "5px" }}>
+              <button
+                type="button"
+                onClick={() => handleToggleLanguage("es")}
+                style={{
+                  background: lang === "es" ? "#FFFFFF" : "transparent",
+                  border: lang === "es" ? "1px solid #CBD5E1" : "none",
+                  borderRadius: "4px",
+                  padding: "2px 7px",
+                  fontSize: "11px",
+                  fontWeight: lang === "es" ? 700 : 500,
+                  color: lang === "es" ? "#0F172A" : "#64748B",
+                  cursor: "pointer",
+                }}
+              >
+                ES
+              </button>
+              <button
+                type="button"
+                onClick={() => handleToggleLanguage("en")}
+                style={{
+                  background: lang === "en" ? "#FFFFFF" : "transparent",
+                  border: lang === "en" ? "1px solid #CBD5E1" : "none",
+                  borderRadius: "4px",
+                  padding: "2px 7px",
+                  fontSize: "11px",
+                  fontWeight: lang === "en" ? 700 : 500,
+                  color: lang === "en" ? "#0F172A" : "#64748B",
+                  cursor: "pointer",
+                }}
+              >
+                EN
+              </button>
+            </div>
+          </div>
         </Box>
 
         {/* Error Notification */}
@@ -140,12 +190,12 @@ export const App = () => {
           </Box>
         )}
 
-        {/* Sheet Connection */}
+        {/* Sheet Connection (Automatic upon selection) */}
         <SheetConnector
+          t={t}
           onConnect={handleConnectSheet}
           onInspectSheets={handleInspectSheets}
           onSignInGoogle={handleSignInGoogle}
-          onSignOutGoogle={handleSignOutGoogle}
           isAuthenticatedGoogle={isAuthenticatedGoogle}
           isLoading={isLoading}
           availableTabs={availableTabs}
@@ -162,6 +212,7 @@ export const App = () => {
         {/* Schedule Table Actions & Summary */}
         {records.length > 0 && (
           <ScheduleTableManager
+            t={t}
             records={records}
             sheetTitle={spreadsheetTitle}
             selectedTab={selectedTab}
@@ -200,7 +251,7 @@ export const App = () => {
                 }}
               />
               <Text size="small">
-                {isAuthenticatedGoogle ? "Connected" : "Google Account"}
+                {isAuthenticatedGoogle ? t.connected : t.notConnected}
               </Text>
             </div>
 
@@ -222,7 +273,7 @@ export const App = () => {
                   flexShrink: 0,
                 }}
               >
-                Sign out
+                {t.signOut}
               </button>
             ) : (
               <Button
@@ -230,7 +281,7 @@ export const App = () => {
                 onClick={() => handleSignInGoogle()}
                 disabled={isLoading}
               >
-                Sign in with Google
+                {t.signIn}
               </Button>
             )}
           </div>
