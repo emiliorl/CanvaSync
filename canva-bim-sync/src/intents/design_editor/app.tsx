@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Rows, Title, Text, Alert, Button, Box } from "@canva/app-ui-kit";
+import { Rows, Title, Text, Alert, Box } from "@canva/app-ui-kit";
 import * as styles from "styles/components.css";
 import { SheetConnector } from "../../components/SheetConnector";
-import { RoomSelector } from "../../components/RoomSelector";
-import { ElementInjector } from "../../components/ElementInjector";
+import { ScheduleTableManager } from "../../components/ScheduleTableManager";
 import {
   fetchSheetData,
   fetchPrivateSheetData,
@@ -24,7 +23,6 @@ export const App = () => {
   const [availableTabs, setAvailableTabs] = useState<SheetTabInfo[]>([]);
   const [selectedTab, setSelectedTab] = useState<string>("");
   const [records, setRecords] = useState<BimRoomRecord[]>([]);
-  const [selectedRecord, setSelectedRecord] = useState<BimRoomRecord | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -40,7 +38,7 @@ export const App = () => {
     try {
       await requestGoogleAccessToken();
       setIsAuthenticatedGoogle(true);
-      setStatusMessage("Google sign-in successful. Private sheet access enabled.");
+      setStatusMessage("Google sign-in completed. Private sheet access enabled.");
       if (activeUrl) {
         await handleInspectSheets(activeUrl);
       }
@@ -91,20 +89,14 @@ export const App = () => {
       }
 
       if (result.records.length === 0) {
-        setErrorMessage("No valid room records found in the sheet. Check column headers.");
+        setErrorMessage("No schedule rows found. Please check column headers (e.g. Revit_ID, Finish_Spec).");
         return;
       }
 
       setRecords(result.records);
-
-      if (selectedRecord) {
-        const stillExists = result.records.find((r) => r.revitId === selectedRecord.revitId);
-        setSelectedRecord(stillExists || result.records[0] || null);
-      } else {
-        setSelectedRecord(result.records[0] || null);
-      }
-
-      setStatusMessage(`Successfully loaded ${result.records.length} spaces from tab "${result.sheetTitle || selectedTab || 'Sheet'}".`);
+      setStatusMessage(
+        `Loaded ${result.records.length} schedule rows from "${result.sheetTitle || selectedTab || 'Sheet'}".`,
+      );
     } catch (err: any) {
       setErrorMessage(err.message || "Failed to load Google Sheet.");
     } finally {
@@ -117,24 +109,15 @@ export const App = () => {
     await handleConnectSheet(activeUrl, selectedTab);
   };
 
-  const handlePlacementComplete = (msg: string) => {
-    setStatusMessage(msg);
-    setErrorMessage(null);
-  };
-
-  const handlePlacementError = (err: string) => {
-    setErrorMessage(err);
-  };
-
   return (
     <div className={styles.scrollContainer}>
       <Rows spacing="2u">
-        {/* App Title Header */}
+        {/* Header */}
         <Box padding="2u">
           <Rows spacing="0.5u">
-            <Title size="medium">CanvaSync (BIM Bridge)</Title>
+            <Title size="medium">CanvaSync</Title>
             <Text size="small" tone="secondary">
-              Sync Google Sheets room schedules and tables into your slides with in-place updates.
+              Architectural schedule & finish specification bridge
             </Text>
           </Rows>
         </Box>
@@ -142,10 +125,7 @@ export const App = () => {
         {/* Error Notification */}
         {errorMessage && (
           <Box padding="2u">
-            <Alert
-              tone="critical"
-              onDismiss={() => setErrorMessage(null)}
-            >
+            <Alert tone="critical" onDismiss={() => setErrorMessage(null)}>
               {errorMessage}
             </Alert>
           </Box>
@@ -154,16 +134,13 @@ export const App = () => {
         {/* Success Status Notification */}
         {statusMessage && (
           <Box padding="2u">
-            <Alert
-              tone="positive"
-              onDismiss={() => setStatusMessage(null)}
-            >
+            <Alert tone="positive" onDismiss={() => setStatusMessage(null)}>
               {statusMessage}
             </Alert>
           </Box>
         )}
 
-        {/* Google Sheet Connector & Sheet Page Selector */}
+        {/* Sheet Connection */}
         <SheetConnector
           onConnect={handleConnectSheet}
           onInspectSheets={handleInspectSheets}
@@ -171,9 +148,9 @@ export const App = () => {
           onSignOutGoogle={handleSignOutGoogle}
           isAuthenticatedGoogle={isAuthenticatedGoogle}
           isLoading={isLoading}
-          spreadsheetTitle={spreadsheetTitle}
           availableTabs={availableTabs}
           selectedTab={selectedTab}
+          hasLoadedRecords={records.length > 0}
           onTabChange={(tab) => {
             setSelectedTab(tab);
             if (activeUrl) {
@@ -182,36 +159,18 @@ export const App = () => {
           }}
         />
 
-        {/* Refresh Sheet Data Button */}
-        {activeUrl && (
-          <Box padding="2u">
-            <Button
-              variant="secondary"
-              onClick={handleRefreshSheet}
-              disabled={isLoading}
-              stretch
-            >
-              🔄 Refresh Latest Data from Sheet
-            </Button>
-          </Box>
-        )}
-
-        {/* Room Record Selector */}
+        {/* Schedule Table Actions & Summary */}
         {records.length > 0 && (
-          <RoomSelector
+          <ScheduleTableManager
             records={records}
-            selectedRecord={selectedRecord}
-            onSelect={(rec) => setSelectedRecord(rec)}
-            disabled={isLoading}
-          />
-        )}
-
-        {/* In-Place Sync & Architectural Table Controls */}
-        {selectedRecord && (
-          <ElementInjector
-            selectedRecord={selectedRecord}
-            onPlacementComplete={handlePlacementComplete}
-            onError={handlePlacementError}
+            sheetTitle={spreadsheetTitle}
+            selectedTab={selectedTab}
+            onRefresh={handleRefreshSheet}
+            onSuccess={(msg) => {
+              setStatusMessage(msg);
+              setErrorMessage(null);
+            }}
+            onError={(err) => setErrorMessage(err)}
             disabled={isLoading}
           />
         )}

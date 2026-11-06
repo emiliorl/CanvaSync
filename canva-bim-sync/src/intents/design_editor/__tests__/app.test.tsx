@@ -34,7 +34,7 @@ describe("CanvaSync BIM App", () => {
   it("renders the app title, Google Sign-in button, and Sheet Link field", () => {
     renderInTestProvider(<App />);
 
-    expect(screen.getByText("CanvaSync (BIM Bridge)")).toBeDefined();
+    expect(screen.getByText("CanvaSync")).toBeDefined();
     expect(screen.getByText("Sign in with Google")).toBeDefined();
     expect(screen.getByText("Google Sheet Link")).toBeDefined();
   });
