@@ -32,13 +32,13 @@ export const App = () => {
     checkIsGoogleAuthenticated().then(setIsAuthenticatedGoogle).catch(() => {});
   }, []);
 
-  const handleSignInGoogle = async () => {
+  const handleSignInGoogle = async (forceConsent: boolean = false) => {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      await requestGoogleAccessToken();
+      await requestGoogleAccessToken(forceConsent);
       setIsAuthenticatedGoogle(true);
-      setStatusMessage("Google sign-in completed. Private sheet access enabled.");
+      setStatusMessage("Google sign-in completed.");
       if (activeUrl) {
         await handleInspectSheets(activeUrl);
       }

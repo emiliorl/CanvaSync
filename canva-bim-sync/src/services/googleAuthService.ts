@@ -15,18 +15,20 @@ function getOauthClient(): Oauth {
  * Passes Google's required access_type=offline and prompt=consent to ensure
  * Google returns both an access token and refresh token to Canva's backend.
  */
-export async function requestGoogleAccessToken(): Promise<string> {
+export async function requestGoogleAccessToken(forceConsent: boolean = false): Promise<string> {
   const client = getOauthClient();
 
   try {
-    // 1. Check if user already has an active, valid token cached by Canva
-    try {
-      const existing = await client.getAccessToken();
-      if (existing?.token) {
-        return existing.token;
+    // 1. Check if user already has an active, valid token cached by Canva (skip if forcing fresh consent)
+    if (!forceConsent) {
+      try {
+        const existing = await client.getAccessToken();
+        if (existing?.token) {
+          return existing.token;
+        }
+      } catch {
+        // Proceed to request authorization
       }
-    } catch {
-      // Proceed to request authorization
     }
 
     // 2. Request authorization with Google required parameters
