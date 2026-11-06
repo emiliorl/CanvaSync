@@ -156,3 +156,4 @@ export function saveLanguagePreference(lang: Language): void {
     // Ignore
   }
 }
+

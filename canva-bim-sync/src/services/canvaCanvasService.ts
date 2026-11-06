@@ -18,104 +18,157 @@ function inferMimeType(url: string): ImageMimeType {
   return "image/jpeg";
 }
 
-/**
- * Places schedule rows on absolute presentation slides (like 800x600 or 1920x1080)
- * where cursor-based table streams are not supported.
- */
-async function injectPresentationSchedule(
-  records: BimRoomRecord[],
-  options: { includeImages?: boolean } = {},
-): Promise<number> {
-  const startX = 60;
-  let currentY = 50;
+function escapeXml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
 
-  // 1. Header banner
-  const headerElement = {
-    type: "text" as const,
-    children: ["Material & Finish Schedule"],
-    top: currentY,
-    left: startX,
-    width: 680,
-    fontSize: 22,
-    fontWeight: "bold" as const,
-    color: "#0F172A",
-  };
+function wrapText(text: string, maxCharsPerLine: number = 44): string[] {
+  if (!text) return ["-"];
+  const lines: string[] = [];
+  const rawParagraphs = text.split(/\r?\n/);
 
-  try {
-    await addElementAtPoint(headerElement);
-  } catch {
-    // If addElementAtPoint fails, ignore
-  }
+  for (const para of rawParagraphs) {
+    const trimmed = para.trim();
+    if (!trimmed) continue;
+    const words = trimmed.split(/\s+/);
+    let currentLine = "";
 
-  currentY += 45;
-
-  // 2. Schedule rows
-  for (const room of records) {
-    const rowTitle = `${room.revitId}  •  ${room.roomName}${room.areaLabel ? ` (${room.areaLabel})` : ""}`;
-    const rowSpec = room.finishSpec || "Standard Specification";
-
-    const rowElement = {
-      type: "text" as const,
-      children: [`${rowTitle}\n${rowSpec}`],
-      top: currentY,
-      left: startX,
-      width: options.includeImages ? 440 : 680,
-      fontSize: 13,
-      color: "#1E293B",
-    };
-
-    try {
-      await addElementAtPoint(rowElement);
-    } catch {
-      // Continue
-    }
-
-    currentY += 65;
-  }
-
-  // 3. Companion material/texture images if present
-  let imagesCount = 0;
-  if (options.includeImages) {
-    let imgY = 95;
-    for (const room of records.slice(0, 3)) {
-      if (room.imageUrl && room.imageUrl.startsWith("http")) {
-        try {
-          const mimeType = inferMimeType(room.imageUrl);
-          const uploadRes = await upload({
-            type: "image",
-            mimeType,
-            url: room.imageUrl,
-            thumbnailUrl: room.imageUrl,
-            aiDisclosure: "none",
-            name: `${room.revitId}_material`.slice(0, 50),
-          });
-
-          if (uploadRes?.ref) {
-            await addElementAtPoint({
-              type: "image",
-              ref: uploadRes.ref,
-              altText: { text: `${room.roomName} Material`, decorative: false },
-              top: imgY,
-              left: 520,
-              width: 220,
-              height: 140,
-            });
-            imgY += 155;
-            imagesCount++;
-          }
-        } catch {
-          // Continue if individual image fails
-        }
+    for (const word of words) {
+      if ((currentLine + " " + word).trim().length <= maxCharsPerLine) {
+        currentLine = (currentLine + " " + word).trim();
+      } else {
+        if (currentLine) lines.push(currentLine);
+        currentLine = word;
       }
     }
+    if (currentLine) lines.push(currentLine);
   }
 
-  return imagesCount;
+  return lines.length > 0 ? lines : ["-"];
 }
 
 /**
- * Inserts the complete schedule table (headers + all rows) onto the slide.
- * Automatically adapts between responsive docs (native table) and presentation slides.
+ * Generates an authentic architectural finish schedule table SVG matching the PDF blueprint format:
+ * - Slate gray header: COLOR | REFERENCIA | ESPECIFICACIÓN
+ * - Column 1: Color swatch box matching the zone/finish
+ * - Column 2: Reference Code (e.g. P-01, REV-101)
+ * - Column 3: Structured multi-line finish specification
+ * - Crisp architectural grid borders
+ */
+export function generateArchitecturalTableSvg(
+  records: BimRoomRecord[],
+): { dataUrl: string; width: number; height: number } {
+  const tableWidth = 580;
+  const colColorW = 56;
+  const colRefW = 104;
+  const colSpecW = tableWidth - colColorW - colRefW; // 420px
+
+  const headerH = 34;
+  let currentY = headerH;
+
+  interface SvgRow {
+    color: string;
+    ref: string;
+    specLines: string[];
+    rowY: number;
+    rowH: number;
+  }
+
+  const rows: SvgRow[] = [];
+
+  for (const record of records) {
+    const rawSpec = record.finishSpec || "Especificación estándar";
+    const specLines = wrapText(rawSpec, 42);
+    const rowH = Math.max(50, specLines.length * 16 + 18);
+
+    rows.push({
+      color: record.badgeColorHex || "#38BDF8",
+      ref: record.revitId || "P-01",
+      specLines,
+      rowY: currentY,
+      rowH,
+    });
+
+    currentY += rowH;
+  }
+
+  const totalHeight = currentY;
+
+  // Build clean, compliant SVG 1.1 (no foreignObject, no scripts)
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${tableWidth}" height="${totalHeight}" viewBox="0 0 ${tableWidth} ${totalHeight}">`;
+
+  // Table Background
+  svg += `<rect width="${tableWidth}" height="${totalHeight}" fill="#FFFFFF"/>`;
+
+  // Slate Gray Header (matching blueprint schedule in PDF: #788896)
+  svg += `<rect x="0" y="0" width="${tableWidth}" height="${headerH}" fill="#788896"/>`;
+
+  // Header column titles
+  svg += `<text x="28" y="22" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="10.5" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">COLOR</text>`;
+  svg += `<text x="${colColorW + colRefW / 2}" y="22" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="10.5" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">REFERENCIA</text>`;
+  svg += `<text x="${colColorW + colRefW + 14}" y="22" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="10.5" font-weight="700" fill="#FFFFFF" letter-spacing="1">ESPECIFICACIÓN</text>`;
+
+  // Rows
+  rows.forEach((r, idx) => {
+    const bg = idx % 2 === 0 ? "#FFFFFF" : "#F8FAFC";
+    svg += `<rect x="0" y="${r.rowY}" width="${tableWidth}" height="${r.rowH}" fill="${bg}"/>`;
+
+    // Color swatch box
+    const swatchW = 26;
+    const swatchH = 24;
+    const swatchX = (colColorW - swatchW) / 2;
+    const swatchY = r.rowY + (r.rowH - swatchH) / 2;
+    svg += `<rect x="${swatchX}" y="${swatchY}" width="${swatchW}" height="${swatchH}" rx="2" fill="${r.color}"/>`;
+
+    // Reference code (e.g. P-01, REV-101)
+    const refX = colColorW + colRefW / 2;
+    const refY = r.rowY + r.rowH / 2 + 5;
+    svg += `<text x="${refX}" y="${refY}" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" fill="#0F172A" text-anchor="middle">${escapeXml(r.ref)}</text>`;
+
+    // Specification lines
+    const specStartX = colColorW + colRefW + 14;
+    let specLineY = r.rowY + 18;
+
+    r.specLines.forEach((line, lineIdx) => {
+      const isFirst = lineIdx === 0;
+      const weight = isFirst ? "700" : "400";
+      const color = isFirst ? "#0F172A" : "#475569";
+      svg += `<text x="${specStartX}" y="${specLineY}" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="${weight}" fill="${color}">${escapeXml(line)}</text>`;
+      specLineY += 16;
+    });
+
+    // Horizontal grid line
+    svg += `<line x1="0" y1="${r.rowY + r.rowH}" x2="${tableWidth}" y2="${r.rowY + r.rowH}" stroke="#CBD5E1" stroke-width="1"/>`;
+  });
+
+  // Vertical column grid lines
+  svg += `<line x1="${colColorW}" y1="0" x2="${colColorW}" y2="${totalHeight}" stroke="#CBD5E1" stroke-width="1"/>`;
+  svg += `<line x1="${colColorW + colRefW}" y1="0" x2="${colColorW + colRefW}" y2="${totalHeight}" stroke="#CBD5E1" stroke-width="1"/>`;
+
+  // Outer border
+  svg += `<rect x="0.5" y="0.5" width="${tableWidth - 1}" height="${totalHeight - 1}" fill="none" stroke="#94A3B8" stroke-width="1"/>`;
+
+  svg += `</svg>`;
+
+  const base64 = typeof window !== "undefined"
+    ? window.btoa(unescape(encodeURIComponent(svg)))
+    : Buffer.from(svg).toString("base64");
+
+  return {
+    dataUrl: `data:image/svg+xml;base64,${base64}`,
+    width: tableWidth,
+    height: totalHeight,
+  };
+}
+
+/**
+ * Inserts the architectural schedule table onto the presentation slide or document.
+ * Creates a pixel-perfect schedule table matching the architectural finish blueprint format.
  */
 export async function injectScheduleTable(
   records: BimRoomRecord[],
@@ -125,134 +178,82 @@ export async function injectScheduleTable(
     throw new Error("No schedule rows to insert.");
   }
 
-  // 1. Build table rows (Header + each room row)
-  const headerRow = {
-    cells: [
-      {
-        type: "string" as const,
-        value: "Revit_ID",
-        attributes: {
-          backgroundColor: "#1E293B",
-          fontWeight: "bold" as const,
-          color: "#FFFFFF",
-        },
-      },
-      {
-        type: "string" as const,
-        value: "Room / Space",
-        attributes: {
-          backgroundColor: "#1E293B",
-          fontWeight: "bold" as const,
-          color: "#FFFFFF",
-        },
-      },
-      {
-        type: "string" as const,
-        value: "Area",
-        attributes: {
-          backgroundColor: "#1E293B",
-          fontWeight: "bold" as const,
-          color: "#FFFFFF",
-        },
-      },
-      {
-        type: "string" as const,
-        value: "Finish & Material Specification",
-        attributes: {
-          backgroundColor: "#1E293B",
-          fontWeight: "bold" as const,
-          color: "#FFFFFF",
-        },
-      },
-    ],
-  };
-
-  const dataRows = records.map((room) => ({
-    cells: [
-      {
-        type: "string" as const,
-        value: room.revitId || "REV",
-        attributes: {
-          backgroundColor: room.badgeColorHex || "#334155",
-          fontWeight: "bold" as const,
-          color: "#FFFFFF",
-        },
-      },
-      {
-        type: "string" as const,
-        value: room.roomName || "Space",
-        attributes: {
-          backgroundColor: "#F8FAFC",
-          fontWeight: "normal" as const,
-          color: "#0F172A",
-        },
-      },
-      {
-        type: "string" as const,
-        value: room.areaLabel || "-",
-        attributes: {
-          backgroundColor: "#FFFFFF",
-          fontWeight: "normal" as const,
-          color: "#475569",
-        },
-      },
-      {
-        type: "string" as const,
-        value: room.finishSpec || "Standard Specification",
-        attributes: {
-          backgroundColor: "#FFFFFF",
-          fontWeight: "normal" as const,
-          color: "#0F172A",
-        },
-      },
-    ],
-  }));
-
-  const tableElement: TableElement = {
-    type: "table",
-    rows: [headerRow, ...dataRows],
-  };
-
   let imagesCount = 0;
 
-  try {
-    // Attempt native table insertion (supported on responsive doc contexts)
-    await addElementAtCursor(tableElement);
+  // 1. Generate and place the structured architectural schedule table vector
+  const tableSvg = generateArchitecturalTableSvg(records);
 
-    if (options.includeImages) {
-      for (const room of records.slice(0, 3)) {
-        if (room.imageUrl && room.imageUrl.startsWith("http")) {
-          try {
-            const mimeType = inferMimeType(room.imageUrl);
-            const uploadRes = await upload({
-              type: "image",
-              mimeType,
-              url: room.imageUrl,
-              thumbnailUrl: room.imageUrl,
-              aiDisclosure: "none",
-              name: `${room.revitId}_material`.slice(0, 50),
-            });
-            if (uploadRes?.ref) {
-              await addElementAtCursor({
+  const uploadRes = await upload({
+    type: "image",
+    mimeType: "image/svg+xml",
+    url: tableSvg.dataUrl,
+    thumbnailUrl: tableSvg.dataUrl,
+    name: "Tabla_Acabados.svg",
+    aiDisclosure: "none",
+  });
+
+  if (uploadRes?.ref) {
+    try {
+      await addElementAtPoint({
+        type: "image",
+        ref: uploadRes.ref,
+        top: 50,
+        left: 40,
+        width: tableSvg.width,
+        height: tableSvg.height,
+        altText: { text: "Tabla de Acabados y Especificaciones", decorative: false },
+      });
+    } catch {
+      // Fallback for responsive pages/docs
+      await addElementAtCursor({
+        type: "image",
+        ref: uploadRes.ref,
+        altText: { text: "Tabla de Acabados y Especificaciones", decorative: false },
+      });
+    }
+  }
+
+  // 2. Companion material images if requested
+  if (options.includeImages) {
+    let imgY = 50;
+    for (const room of records.slice(0, 3)) {
+      if (room.imageUrl && room.imageUrl.startsWith("http")) {
+        try {
+          const mimeType = inferMimeType(room.imageUrl);
+          const imgUploadRes = await upload({
+            type: "image",
+            mimeType,
+            url: room.imageUrl,
+            thumbnailUrl: room.imageUrl,
+            aiDisclosure: "none",
+            name: `${room.revitId}_material`.slice(0, 50),
+          });
+
+          if (imgUploadRes?.ref) {
+            try {
+              await addElementAtPoint({
                 type: "image",
-                ref: uploadRes.ref,
+                ref: imgUploadRes.ref,
+                top: imgY,
+                left: 640,
+                width: 140,
+                height: 100,
                 altText: { text: `${room.roomName} Material`, decorative: false },
               });
-              imagesCount++;
+            } catch {
+              await addElementAtCursor({
+                type: "image",
+                ref: imgUploadRes.ref,
+                altText: { text: `${room.roomName} Material`, decorative: false },
+              });
             }
-          } catch {
-            // Continue
+            imgY += 115;
+            imagesCount++;
           }
+        } catch {
+          // Continue if single image upload fails
         }
       }
-    }
-  } catch (err: any) {
-    const msg = err?.message || String(err);
-    if (msg.includes("unsupported_page_type") || msg.includes("not supported in this context")) {
-      // Fallback for absolute presentation pages (e.g. 800x600, 1920x1080)
-      imagesCount = await injectPresentationSchedule(records, options);
-    } else {
-      throw err;
     }
   }
 
@@ -260,8 +261,7 @@ export async function injectScheduleTable(
 }
 
 /**
- * Safely updates text elements in-place on the active slide.
- * Handles Canva page type restrictions gracefully without throwing Dev Toolkit warnings.
+ * Safely updates slide content.
  */
 export async function syncRoomElementsInPlace(
   records: BimRoomRecord[],
@@ -283,10 +283,9 @@ export async function syncRoomElementsInPlace(
             const currentText = range.readPlaintext();
             if (!currentText || currentText.trim().length === 0) continue;
 
-            // Match specification text or room name
             const isSpecBlock =
               currentText.includes("Finish:") ||
-              currentText.includes("Finish_Spec") ||
+              currentText.includes("Especificación") ||
               (room.finishSpec && currentText.includes(room.finishSpec.slice(0, 20)));
 
             if (isSpecBlock) {
@@ -305,7 +304,6 @@ export async function syncRoomElementsInPlace(
       },
     );
   } catch (err: any) {
-    // Gracefully handle unsupported_page_type on non-richtext page contexts
     console.info("In-place slide text update skipped:", err?.message || err);
   }
 
