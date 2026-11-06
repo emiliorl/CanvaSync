@@ -3,6 +3,12 @@ import { formatAppError } from "./localizedError";
 
 /** Canva supplies locale and translated messages through AppI18nProvider. */
 const messages = defineMessages({
+  cellColorsUnavailable: {
+    defaultMessage:
+      "Cell colors could not be loaded from this link. Sign in with Google and reload the sheet to include colors.",
+    description:
+      "Sheet values are available but source cell formatting could not be retrieved",
+  },
   rowCount: {
     defaultMessage: "{count, plural, one {# row} other {# rows}}",
     description: "Imported row count",
@@ -425,6 +431,7 @@ export function useTranslations() {
     signInError: intl.formatMessage(messages.signInError),
     inspectError: intl.formatMessage(messages.inspectError),
     loadError: intl.formatMessage(messages.loadError),
+    cellColorsUnavailable: intl.formatMessage(messages.cellColorsUnavailable),
     importError: intl.formatMessage(messages.importError),
     refreshSuccess: intl.formatMessage(messages.refreshSuccess),
     recent: intl.formatMessage(messages.recent),

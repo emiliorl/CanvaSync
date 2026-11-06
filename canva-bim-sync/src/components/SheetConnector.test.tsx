@@ -7,13 +7,15 @@ import { saveRecentSpreadsheet } from "../services/googleSheetsService";
 
 const refresh = jest.fn();
 const error = jest.fn();
+const inspect = jest.fn();
+const connect = jest.fn();
 function Harness({ loading = false }: { loading?: boolean }) {
   const t = useTranslations();
   return (
     <SheetConnector
       t={t}
-      onConnect={jest.fn()}
-      onInspectSheets={jest.fn()}
+      onConnect={connect}
+      onInspectSheets={inspect}
       onSignInGoogle={jest.fn()}
       isAuthenticatedGoogle={false}
       isLoading={loading}
@@ -37,6 +39,30 @@ describe("sheet tab actions", () => {
     });
     jest.clearAllMocks();
     refresh.mockResolvedValue(undefined);
+    inspect.mockResolvedValue([
+      { title: "Floor", sheetId: 0 },
+      { title: "Walls", sheetId: 73 },
+    ]);
+    connect.mockResolvedValue(undefined);
+  });
+  it("loads a pasted link's selected tab after discovering the workbook", async () => {
+    renderInTestProvider(<Harness />);
+    fireEvent.click(screen.getByRole("button", { name: /paste.*link/i }));
+    const url = "https://docs.google.com/spreadsheets/d/example/edit?gid=73";
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: url } });
+    await waitFor(() => expect(connect).toHaveBeenCalledWith(url, "Walls"));
+    expect(inspect).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not load a made-up tab when discovery fails", async () => {
+    inspect.mockResolvedValueOnce([]);
+    renderInTestProvider(<Harness />);
+    fireEvent.click(screen.getByRole("button", { name: /paste.*link/i }));
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "https://docs.google.com/spreadsheets/d/example" },
+    });
+    await waitFor(() => expect(inspect).toHaveBeenCalledTimes(1));
+    expect(connect).not.toHaveBeenCalled();
   });
   it("opens the selected sheet tab from its adjacent icon", async () => {
     renderInTestProvider(<Harness />);

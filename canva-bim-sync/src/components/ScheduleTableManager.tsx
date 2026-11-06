@@ -238,6 +238,15 @@ export const ScheduleTableManager: React.FC<ScheduleTableManagerProps> = ({
         (item) => item.key === column.key && item.title === column.title,
       ),
     ) &&
+    (hasCellColors !== true ||
+      lastImport.layout.columns.every(
+        (column) =>
+          (column.backgroundColor || "#ffffff").toLowerCase() ===
+          (
+            columns.find((item) => item.key === column.key)?.backgroundColor ||
+            "#ffffff"
+          ).toLowerCase(),
+      )) &&
     JSON.stringify(lastImport.keys) ===
       JSON.stringify(
         records.map(
@@ -373,11 +382,27 @@ export const ScheduleTableManager: React.FC<ScheduleTableManagerProps> = ({
             description: "Linked table schema mismatch",
           }),
         );
+      const headerColors =
+        latest.hasCellColors === true && latest.columns
+          ? Object.fromEntries(
+              importedColumns.flatMap((column) => {
+                const color =
+                  latest.columns?.find((item) => item.key === column.key)
+                    ?.backgroundColor || "#ffffff";
+                return color.toLowerCase() ===
+                  (column.backgroundColor || "#ffffff").toLowerCase()
+                  ? []
+                  : [[column.key, color]];
+              }),
+            )
+          : {};
       const updated =
         Object.keys(pendingRowHeights).length ||
         Object.keys(pendingColumnWidths).length ||
+        Object.keys(headerColors).length ||
         latest.hasCellColors === false
           ? await updateLinkedTable(source || "", latest.records, {
+              ...(Object.keys(headerColors).length ? { headerColors } : {}),
               ...(Object.keys(pendingRowHeights).length
                 ? { rowHeights: pendingRowHeights }
                 : {}),
@@ -408,6 +433,11 @@ export const ScheduleTableManager: React.FC<ScheduleTableManagerProps> = ({
     <Box padding="2u">
       <Rows spacing="2u">
         {designCheckError && <Alert tone="critical">{designCheckError}</Alert>}
+        {hasCellColors === false && (
+          <Text size="small" tone="secondary">
+            {t.cellColorsUnavailable}
+          </Text>
+        )}
         <Text size="small" tone="secondary">
           {lastImport
             ? t.tableStatus(

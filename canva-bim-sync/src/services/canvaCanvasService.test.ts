@@ -195,7 +195,12 @@ describe("finish schedule layout", () => {
     const table = buildEditableSchedule([row], {
       columns: [
         { key: "notes", title: "Notes", kind: "text" },
-        { key: "cost", title: "Unit cost", kind: "text" },
+        {
+          key: "cost",
+          title: "Unit cost",
+          kind: "text",
+          backgroundColor: "#AABBCC",
+        },
       ],
     });
     const texts = table.children.filter((child) => child.type === "text");
@@ -205,6 +210,10 @@ describe("finish schedule layout", () => {
       "$45",
     ]);
     const shapes = table.children.filter((child) => child.type === "shape");
+    expect(
+      shapes.find((shape) => shape.top === 0 && shape.left === 160)?.paths[0]
+        ?.fill.color,
+    ).toBe("#AABBCC");
     expect(
       shapes.find((shape) => shape.top === 32 && shape.left === 0)?.paths[0]
         ?.fill.color,

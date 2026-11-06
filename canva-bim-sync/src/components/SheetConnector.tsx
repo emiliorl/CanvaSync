@@ -123,21 +123,6 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
     setShowManualInput(false);
     const newUrl = `https://docs.google.com/spreadsheets/d/${fileId}`;
     setUrl(newUrl);
-
-    setIsInspecting(true);
-    onInspectSheets(newUrl)
-      .then((tabs) => {
-        const found = driveFiles.find((f) => f.id === fileId);
-        saveRecentSpreadsheet({
-          id: fileId,
-          title: found?.name || t.spreadsheetWithTabs(tabs.length),
-          url: newUrl,
-        });
-        // Auto-connect immediately so user doesn't have to click an extra button
-        const defaultTab = tabs[0]?.title;
-        onConnect(newUrl, defaultTab);
-      })
-      .finally(() => setIsInspecting(false));
   };
 
   // Auto-inspect and load when user pastes a URL
@@ -145,14 +130,26 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
     if (url.includes("/spreadsheets/d/")) {
       const timer = setTimeout(() => {
         try {
-          const { spreadsheetId } = extractSpreadsheetInfo(url);
+          const { spreadsheetId, gid } = extractSpreadsheetInfo(url);
           setSelectedFileId(spreadsheetId);
           setIsInspecting(true);
           onInspectSheets(url.trim())
             .then((tabs) => {
-              const defaultTab = tabs[0]?.title;
-              onConnect(url.trim(), defaultTab);
+              if (tabs.length === 0) return;
+              const defaultTab =
+                tabs.find((tab) => String(tab.sheetId) === gid)?.title ||
+                tabs[0]?.title;
+              const found = driveFiles.find(
+                (file) => file.id === spreadsheetId,
+              );
+              saveRecentSpreadsheet({
+                id: spreadsheetId,
+                title: found?.name || t.spreadsheetWithTabs(tabs.length),
+                url: url.trim(),
+              });
+              return onConnect(url.trim(), defaultTab);
             })
+            .catch((error) => onError(t.formatError(error, t.inspectError)))
             .finally(() => setIsInspecting(false));
         } catch {
           // Incomplete URL while typing, ignore

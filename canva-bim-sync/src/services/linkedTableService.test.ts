@@ -879,6 +879,31 @@ describe("linked Canva tables", () => {
     ).toBe("#ffffff");
   });
 
+  it("updates header fills and retains them if formatting becomes unavailable", async () => {
+    const canvas = editor();
+    await insertLinkedTable(data.records, options);
+    const updated = await updateLinkedTable(options.sourceKey, data.records, {
+      headerColors: { column_1: "#AABBCC" },
+    });
+    expect(
+      canvas.elements[0].contents.toArray()[2].fill.colorContainer.ref.color,
+    ).toBe("#aabbcc");
+    expect(updated.layout.columns[1]?.backgroundColor).toBe("#AABBCC");
+    await updateLinkedTable(options.sourceKey, data.records, {
+      hasCellColors: false,
+      headerColors: { column_1: "#ffffff" },
+    });
+    expect(
+      canvas.elements[0].contents.toArray()[2].fill.colorContainer.ref.color,
+    ).toBe("#aabbcc");
+    await updateLinkedTable(options.sourceKey, data.records, {
+      headerColors: { column_1: "#ffffff" },
+    });
+    expect(
+      canvas.elements[0].contents.toArray()[2].fill.colorContainer.ref.color,
+    ).toBe("#ffffff");
+  });
+
   it("uses sheet colors even for designer fills on a legacy table without color history", async () => {
     const canvas = editor();
     const records = copyRecords();

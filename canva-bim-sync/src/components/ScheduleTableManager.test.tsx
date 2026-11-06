@@ -35,7 +35,7 @@ const data = parseSheetRows(
 const success = jest.fn();
 const refresh = jest.fn().mockResolvedValue(undefined);
 const error = jest.fn();
-function Harness() {
+function Harness({ hasCellColors }: { hasCellColors?: boolean } = {}) {
   const t = useTranslations();
   return (
     <ScheduleTableManager
@@ -46,6 +46,7 @@ function Harness() {
       onSuccess={success}
       onError={error}
       onRefresh={refresh}
+      hasCellColors={hasCellColors}
     />
   );
 }
@@ -67,6 +68,14 @@ describe("column selection and table sizing", () => {
         time: Date.now(),
       }));
     refresh.mockResolvedValue(data);
+  });
+
+  it("explains when source cell formatting is unavailable", async () => {
+    renderInTestProvider(<Harness hasCellColors={false} />);
+    expect(
+      screen.getByText(/Cell colors could not be loaded from this link/),
+    ).toBeDefined();
+    await waitFor(() => expect(readLinkedTable).toHaveBeenCalled());
   });
 
   it("imports chosen columns, their order, and independent row/column dimensions", async () => {
@@ -183,6 +192,40 @@ describe("column selection and table sizing", () => {
       expect(success).toHaveBeenCalledWith(
         "Updated the existing table in Canva.",
       ),
+    );
+  });
+
+  it("passes newly loaded header colors when updating an existing table", async () => {
+    const table = await insertLinkedTable(data.records, {
+      sourceKey: "test",
+      layout: { columns: data.columns! },
+      includeImages: false,
+      keyColumn: "column_0",
+    });
+    jest.mocked(readLinkedTable).mockResolvedValue({ pageId: "page1", table });
+    jest.mocked(updateLinkedTable).mockResolvedValue(table);
+    refresh.mockResolvedValue({
+      ...data,
+      hasCellColors: true,
+      columns: data.columns!.map((column) =>
+        column.key === "column_0"
+          ? { ...column, backgroundColor: "#AABBCC" }
+          : column,
+      ),
+    });
+    renderInTestProvider(<Harness />);
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole("button", { name: "Update table" })
+          .getAttribute("aria-disabled"),
+      ).not.toBe("true"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Update table" }));
+    await waitFor(() =>
+      expect(updateLinkedTable).toHaveBeenCalledWith("test", data.records, {
+        headerColors: { column_0: "#AABBCC" },
+      }),
     );
   });
 

@@ -564,6 +564,7 @@ export async function updateLinkedTable(
   options: {
     rowHeights?: Record<string, number>;
     columnWidths?: Record<string, number>;
+    headerColors?: Record<string, string>;
     hasCellColors?: boolean;
   } = {},
 ): Promise<LinkedTable> {
@@ -591,6 +592,16 @@ export async function updateLinkedTable(
       "Record keys were added, removed, or changed. Keep existing keys stable when editing or reordering rows.",
     );
   const count = previous.layout.columns.length;
+  const headerColors =
+    options.hasCellColors === false ? {} : options.headerColors || {};
+  for (const [key, color] of Object.entries(headerColors)) {
+    if (
+      !previous.layout.columns.some((column) => column.key === key) ||
+      !/^#[\da-f]{6}$/i.test(color)
+    ) {
+      throw new Error("Invalid header color or column.");
+    }
+  }
   const requestedWidths = options.columnWidths || {};
   for (const [key, width] of Object.entries(requestedWidths)) {
     if (
@@ -652,6 +663,11 @@ export async function updateLinkedTable(
     keys,
     layout: {
       ...previous.layout,
+      columns: previous.layout.columns.map((column) =>
+        headerColors[column.key]
+          ? { ...column, backgroundColor: headerColors[column.key] }
+          : column,
+      ),
       columnWidths: { ...previous.layout.columnWidths, ...requestedWidths },
     },
     cellKeys,
@@ -858,6 +874,8 @@ export async function updateLinkedTable(
         const width = requestedWidths[column.key];
         const header = groupedChildren[index * 2];
         const text = groupedChildren[index * 2 + 1];
+        if (headerColors[column.key] && header?.type !== "rect")
+          throw new Error("The table header structure changed.");
         if (
           width !== undefined &&
           header?.type === "rect" &&
@@ -1132,6 +1150,18 @@ export async function updateLinkedTable(
             marker,
             nextLeft - Math.min(...headers.map((header) => header.left)),
           );
+      }
+      for (const [index, column] of previous.layout.columns.entries()) {
+        const color = headerColors[column.key];
+        const header = children[index * 2];
+        if (color && header?.type === "rect") {
+          header.fill.colorContainer.set({
+            type: "solid",
+            color: color.toLowerCase(),
+          });
+          if (header.fill.mediaContainer.ref)
+            header.fill.mediaContainer.set(undefined);
+        }
       }
       for (const { child, background, value, index, oldIndex } of targets) {
         if (options.hasCellColors !== false) {

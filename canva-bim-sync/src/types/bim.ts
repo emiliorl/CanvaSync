@@ -28,6 +28,7 @@ export interface SheetColumn {
   key: string;
   title: string;
   kind: "text" | "image";
+  backgroundColor?: string;
 }
 
 export interface ImportLayout {

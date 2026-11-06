@@ -110,7 +110,7 @@ export function extractSpreadsheetInfo(sheetUrl: string): {
     );
   }
 
-  const gidMatch = sheetUrl.match(/[#&]gid=([0-9]+)/);
+  const gidMatch = sheetUrl.match(/[?#&]gid=([0-9]+)/);
   return {
     spreadsheetId: idMatch[1],
     gid: gidMatch ? gidMatch[1] : undefined,
@@ -194,11 +194,77 @@ export async function fetchSpreadsheetMetadata(
     };
   }
 
-  // Fallback for public sheets without token
+  // Public CSV exports contain one tab only. The HTML viewer provides the
+  // workbook's tab list, usually as inline data for its page switcher.
+  const response = await fetch(
+    `https://docs.google.com/spreadsheets/d/${spreadsheetId}/htmlview`,
+  );
+  if (!response.ok) {
+    throw new Error(
+      "Could not retrieve sheet tabs. Please sign in with Google and try again.",
+    );
+  }
+  const document = new DOMParser().parseFromString(
+    await response.text(),
+    "text/html",
+  );
+  const tabs = new Map<number, SheetTabInfo>();
+  // Google's viewer builds its menu in JavaScript, so those buttons may not
+  // exist in the fetched HTML. Read only the known data fields, never eval it.
+  for (const script of document.querySelectorAll("script")) {
+    const items = (script.textContent || "").matchAll(
+      /items\.push\(\s*\{\s*name:\s*("(?:\\.|[^"\\])*"),\s*pageUrl:\s*"(?:\\.|[^"\\])*",\s*gid:\s*"(\d+)"/g,
+    );
+    for (const item of items) {
+      try {
+        // Google uses JavaScript hex escapes (e.g. \x26) as well as JSON
+        // escapes. Convert those tokens before safely decoding the string.
+        const title: string = JSON.parse(
+          item[1]!.replace(/\\(x([\da-f]{2})|[^])/gi, (escape, _value, hex) =>
+            hex ? `\\u00${hex}` : escape === "\\'" ? "'" : escape,
+          ),
+        );
+        const sheetId = Number(item[2]);
+        if (title && Number.isSafeInteger(sheetId)) {
+          tabs.set(sheetId, { title, sheetId });
+        }
+      } catch {
+        // Ignore malformed items and continue reading other tabs.
+      }
+    }
+  }
+  document
+    .querySelectorAll('[id^="sheet-button-"], #sheet-menu a[href]')
+    .forEach((element) => {
+      const href =
+        element.getAttribute("href") ||
+        element.querySelector("a")?.getAttribute("href") ||
+        "";
+      const onclick =
+        element.getAttribute("onclick") ||
+        element.querySelector("[onclick]")?.getAttribute("onclick") ||
+        "";
+      const id =
+        href.match(/[?#&]gid=(\d+)/)?.[1] ??
+        onclick.match(/switchToSheet\(\s*['"]?(\d+)/)?.[1] ??
+        element.id.match(/^sheet-button-(\d+)$/)?.[1];
+      const title = element.textContent?.trim();
+      if (id !== undefined && title) {
+        const sheetId = Number(id);
+        tabs.set(sheetId, { title, sheetId });
+      }
+    });
+  if (tabs.size === 0) {
+    throw new Error(
+      "Could not discover sheet tabs from this link. Please sign in with Google to list all tabs.",
+    );
+  }
   return {
     spreadsheetId,
-    title: "Google Spreadsheet",
-    sheets: [{ title: "Sheet1", sheetId: 0 }],
+    title:
+      document.title.replace(/ - Google (?:Sheets|Drive)$/, "").trim() ||
+      "Google Spreadsheet",
+    sheets: [...tabs.values()],
   };
 }
 
@@ -282,6 +348,7 @@ export async function fetchPrivateSheetData(
         .slice(1)
         .map((row: { values?: GridCell[] }) => row.values || []),
       targetTab,
+      rowDataList[0]?.values,
     ),
     hasCellColors: true,
   };
@@ -316,11 +383,15 @@ export function parseSheetRows(
   headers: string[],
   rows: GridCell[][],
   sheetTitle?: string,
+  headerCells?: GridCell[],
 ): SheetFetchResult {
   const columns: SheetColumn[] = headers.map((title, index) => ({
     key: `column_${index}`,
     title: title || columnLetter(index),
     kind: /image|photo|render|imagen|foto/i.test(title) ? "image" : "text",
+    ...(headerCells
+      ? { backgroundColor: gridCellColor(headerCells[index]) }
+      : {}),
   }));
   const idColumn = columns.find((column) =>
     /^(revit[ _-]?id|id)$/i.test(column.title),
@@ -332,12 +403,7 @@ export function parseSheetRows(
     const values: Record<string, string> = {};
     columns.forEach((column, index) => {
       const cell = row[index];
-      const format = cell?.effectiveFormat || cell?.userEnteredFormat;
-      const rgb =
-        format?.backgroundColorStyle?.rgbColor || format?.backgroundColor;
-      const backgroundColor = rgb
-        ? rgbToHex(rgb.red ?? 0, rgb.green ?? 0, rgb.blue ?? 0)
-        : undefined;
+      const backgroundColor = gridCellColor(cell);
       const value = cell?.formattedValue || "";
       sourceCells[column.key] = { value, backgroundColor };
       values[column.title] = value;
@@ -368,6 +434,96 @@ export function parseSheetRows(
     });
   }
   return { records, columns, rawCount: records.length, sheetTitle };
+}
+
+function gridCellColor(cell?: GridCell): string | undefined {
+  const format = cell?.effectiveFormat || cell?.userEnteredFormat;
+  const rgb = format?.backgroundColorStyle?.rgbColor || format?.backgroundColor;
+  return rgb
+    ? rgbToHex(rgb.red ?? 0, rgb.green ?? 0, rgb.blue ?? 0)
+    : undefined;
+}
+
+/** Read the styled grid Google serves for publicly shared sheets. */
+function parsePublicSheetGrid(
+  html: string,
+  sheetTitle?: string,
+): SheetFetchResult | undefined {
+  const document = new DOMParser().parseFromString(html, "text/html");
+  const table = document.querySelector<HTMLTableElement>("table.waffle");
+  if (!table) return undefined;
+  const colors = new Map<string, string>();
+  const style = document.createElement("span").style;
+  for (const tag of document.querySelectorAll("style")) {
+    for (const rule of (tag.textContent || "").matchAll(
+      /([^{}]+)\{([^{}]*)\}/g,
+    )) {
+      style.cssText = rule[2]!;
+      if (!style.backgroundColor) continue;
+      for (const selector of rule[1]!.split(",")) {
+        const className = selector.trim().match(/\.(s\d+)$/)?.[1];
+        if (className) colors.set(className, style.backgroundColor);
+      }
+    }
+  }
+  const rows: GridCell[][] = [];
+  let hasCellColors = colors.size > 0;
+  const sourceRows = Array.from(table.querySelectorAll("tbody > tr")).filter(
+    (row) => row.querySelector("td:not(.freezebar-cell)"),
+  );
+  for (const [rowIndex, row] of sourceRows.entries()) {
+    const cells = (rows[rowIndex] ||= []);
+    let columnIndex = 0;
+    for (const td of Array.from(
+      row.querySelectorAll<HTMLTableCellElement>(
+        ":scope > td:not(.freezebar-cell)",
+      ),
+    )) {
+      while (cells[columnIndex]) columnIndex++;
+      const color =
+        td.style.backgroundColor ||
+        Array.from(td.classList)
+          .map((name) => colors.get(name))
+          .find(Boolean);
+      if (td.style.backgroundColor) hasCellColors = true;
+      style.backgroundColor = "";
+      if (color) style.backgroundColor = color;
+      const rgb = style.backgroundColor.match(
+        /^rgb\(\s*(\d+),\s*(\d+),\s*(\d+)\s*\)$/,
+      );
+      const format: CellFormat | undefined = rgb
+        ? {
+            backgroundColor: {
+              red: Number(rgb[1]) / 255,
+              green: Number(rgb[2]) / 255,
+              blue: Number(rgb[3]) / 255,
+            },
+          }
+        : undefined;
+      const content = td.cloneNode(true) as HTMLElement;
+      content.querySelectorAll("br").forEach((br) => br.replaceWith("\n"));
+      for (let y = 0; y < td.rowSpan; y++) {
+        const targetRow = (rows[rowIndex + y] ||= []);
+        for (let x = 0; x < td.colSpan; x++) {
+          targetRow[columnIndex + x] = {
+            formattedValue: x === 0 && y === 0 ? content.textContent || "" : "",
+            effectiveFormat: format,
+          };
+        }
+      }
+      columnIndex += td.colSpan;
+    }
+  }
+  if (!rows.length) return undefined;
+  const width = Math.max(...rows.map((row) => row.length));
+  const headers = Array.from(
+    { length: width },
+    (_, index) => rows[0]?.[index]?.formattedValue || "",
+  );
+  return {
+    ...parseSheetRows(headers, rows.slice(1), sheetTitle, rows[0]),
+    hasCellColors,
+  };
 }
 
 /**
@@ -414,13 +570,38 @@ async function fetchPrivateSheetDataFallback(
 }
 
 /**
- * Ingests Google Sheets data directly in the browser via public CSV export.
+ * Prefer the formatted public grid; retain CSV for unavailable HTML exports.
  */
 export async function fetchSheetData(
   sheetUrl: string,
   sheetName?: string,
 ): Promise<SheetFetchResult> {
   const { spreadsheetId, gid } = extractSpreadsheetInfo(sheetUrl);
+  try {
+    let targetId = gid;
+    let targetTitle = sheetName;
+    if (sheetName || targetId === undefined) {
+      const metadata = await fetchSpreadsheetMetadata(sheetUrl);
+      const target = sheetName
+        ? metadata.sheets.find((tab) => tab.title === sheetName)
+        : metadata.sheets[0];
+      if (!target) throw new Error("Sheet tab not found");
+      targetId = String(target.sheetId);
+      targetTitle = target.title;
+    }
+    const gridResponse = await fetch(
+      `https://docs.google.com/spreadsheets/d/${spreadsheetId}/htmlview/sheet?headers=false&gid=${targetId}`,
+    );
+    if (gridResponse.ok) {
+      const formatted = parsePublicSheetGrid(
+        await gridResponse.text(),
+        targetTitle,
+      );
+      if (formatted) return formatted;
+    }
+  } catch {
+    // A public values export may still be available when formatting is not.
+  }
   let exportUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv`;
   if (sheetName) exportUrl += `&sheet=${encodeURIComponent(sheetName)}`;
   else if (gid) exportUrl += `&gid=${gid}`;

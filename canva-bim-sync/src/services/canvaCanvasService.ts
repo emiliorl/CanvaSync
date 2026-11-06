@@ -158,7 +158,9 @@ export function buildEditableSchedule(
     height = Math.max(height, titleLines.length * lineHeight + 12);
   }
   for (const column of columns) {
-    shapes.push(cellShape(column.left, 0, column.width, height));
+    shapes.push(
+      cellShape(column.left, 0, column.width, height, column.backgroundColor),
+    );
     if (column.title)
       texts.push(cellText(column.title, column.left, 6, column.width));
   }

@@ -82,11 +82,17 @@ export const App = () => {
       setSpreadsheetTitle(meta.title);
       setAvailableTabs(meta.sheets);
       if (meta.sheets.length > 0) {
-        const defaultTab = meta.sheets[0]?.title || "Sheet1";
+        const { gid } = extractSpreadsheetInfo(url);
+        const defaultTab =
+          meta.sheets.find((tab) => String(tab.sheetId) === gid)?.title ||
+          meta.sheets[0]?.title ||
+          "Sheet1";
         setSelectedTab(defaultTab);
       }
       return meta.sheets;
     } catch (err: any) {
+      setAvailableTabs([]);
+      setSelectedTab("");
       setErrorMessage(t.formatError(err, t.inspectError));
       return [];
     }
