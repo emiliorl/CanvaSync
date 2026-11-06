@@ -1,3 +1,5 @@
+import { defineMessage } from "react-intl";
+import { LocalizedError } from "../utils/localizedError";
 import { auth, type Oauth } from "@canva/user";
 
 let oauthClient: Oauth | null = null;
@@ -15,7 +17,9 @@ function getOauthClient(): Oauth {
  * Passes Google's required access_type=offline and prompt=consent to ensure
  * Google returns both an access token and refresh token to Canva's backend.
  */
-export async function requestGoogleAccessToken(forceConsent: boolean = false): Promise<string> {
+export async function requestGoogleAccessToken(
+  forceConsent = false,
+): Promise<string> {
   const client = getOauthClient();
 
   try {
@@ -65,19 +69,44 @@ export async function requestGoogleAccessToken(forceConsent: boolean = false): P
       }
 
       if (lastTokenError) {
-        throw new Error(`Token exchange error: ${lastTokenError}`);
+        throw new LocalizedError(
+          defineMessage({
+            defaultMessage: "Token exchange error: {detail}",
+            description:
+              "Google sign-in token exchange failure with provider detail",
+          }),
+          `Token exchange error: ${lastTokenError}`,
+          { detail: lastTokenError },
+        );
       }
 
-      throw new Error(
+      throw new LocalizedError(
+        defineMessage({
+          defaultMessage:
+            "Google login completed, but Canva could not retrieve the access token. Please verify the Token URL is https://oauth2.googleapis.com/token and Client Secret is correct.",
+          description: "CanvaSync googleAuthService operation error",
+        }),
         "Google login completed, but Canva could not retrieve the access token. Please verify the Token URL is https://oauth2.googleapis.com/token and Client Secret is correct.",
       );
     }
 
     if (response.status === "aborted") {
-      throw new Error("Authorization was cancelled.");
+      throw new LocalizedError(
+        defineMessage({
+          defaultMessage: "Authorization was cancelled.",
+          description: "CanvaSync googleAuthService operation error",
+        }),
+        "Authorization was cancelled.",
+      );
     }
 
-    throw new Error("Authorization flow did not complete.");
+    throw new LocalizedError(
+      defineMessage({
+        defaultMessage: "Authorization flow did not complete.",
+        description: "CanvaSync googleAuthService operation error",
+      }),
+      "Authorization flow did not complete.",
+    );
   } catch (err: any) {
     const msg = err?.message || String(err);
     if (
@@ -86,7 +115,12 @@ export async function requestGoogleAccessToken(forceConsent: boolean = false): P
       msg.includes("unsupported") ||
       msg.includes("configuration")
     ) {
-      throw new Error(
+      throw new LocalizedError(
+        defineMessage({
+          defaultMessage:
+            "Canva OAuth is not configured in Developer Portal. Please configure Google OAuth in your Canva Developer Portal under 'Authentication'.",
+          description: "CanvaSync googleAuthService operation error",
+        }),
         "Canva OAuth is not configured in Developer Portal. Please configure Google OAuth in your Canva Developer Portal under 'Authentication'.",
       );
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Rows, Title, Text, Alert, Box, Button } from "@canva/app-ui-kit";
 import * as styles from "styles/components.css";
 import { SheetConnector } from "../../components/SheetConnector";
@@ -8,6 +8,7 @@ import {
   fetchPrivateSheetData,
   fetchSpreadsheetMetadata,
   type SheetTabInfo,
+  extractSpreadsheetInfo,
 } from "../../services/googleSheetsService";
 import {
   requestGoogleAccessToken,
@@ -15,18 +16,19 @@ import {
   checkIsGoogleAuthenticated,
   clearGoogleSession,
 } from "../../services/googleAuthService";
-import { BimRoomRecord } from "../../types/bim";
-import {
-  type Language,
-  translations,
-  getInitialLanguage,
-  saveLanguagePreference,
-} from "../../utils/i18n";
+import type {
+  BimRoomRecord,
+  SheetColumn,
+  SheetFetchResult,
+} from "../../types/bim";
+import { useTranslations } from "../../utils/i18n";
 
 export const App = () => {
-  const [lang, setLang] = useState<Language>(getInitialLanguage());
-  const t = translations[lang];
-
+  const t = useTranslations();
+  const latestLoad = useRef(0);
+  const loadInFlight = useRef(false);
+  const [columns, setColumns] = useState<SheetColumn[]>([]);
+  const [hasCellColors, setHasCellColors] = useState<boolean | undefined>();
   const [activeUrl, setActiveUrl] = useState<string>("");
   const [spreadsheetTitle, setSpreadsheetTitle] = useState<string>("");
   const [availableTabs, setAvailableTabs] = useState<SheetTabInfo[]>([]);
@@ -35,29 +37,33 @@ export const App = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [isAuthenticatedGoogle, setIsAuthenticatedGoogle] = useState<boolean>(false);
+  const [isAuthenticatedGoogle, setIsAuthenticatedGoogle] =
+    useState<boolean>(false);
 
   useEffect(() => {
-    checkIsGoogleAuthenticated().then(setIsAuthenticatedGoogle).catch(() => {});
+    if (!statusMessage) return;
+    const timer = setTimeout(() => setStatusMessage(null), 4000);
+    return () => clearTimeout(timer);
+  }, [statusMessage]);
+
+  useEffect(() => {
+    checkIsGoogleAuthenticated()
+      .then(setIsAuthenticatedGoogle)
+      .catch(() => {});
   }, []);
 
-  const handleToggleLanguage = (newLang: Language) => {
-    setLang(newLang);
-    saveLanguagePreference(newLang);
-  };
-
-  const handleSignInGoogle = async (forceConsent: boolean = false) => {
+  const handleSignInGoogle = async (forceConsent = false) => {
     setIsLoading(true);
     setErrorMessage(null);
     try {
       await requestGoogleAccessToken(forceConsent);
       setIsAuthenticatedGoogle(true);
-      setStatusMessage(lang === "es" ? "Sesión iniciada con Google." : "Google sign-in completed.");
+      setStatusMessage(t.signInSuccess);
       if (activeUrl) {
         await handleInspectSheets(activeUrl);
       }
     } catch (err: any) {
-      setErrorMessage(err.message || (lang === "es" ? "Error al iniciar sesión con Google." : "Google sign-in failed."));
+      setErrorMessage(t.formatError(err, t.signInError));
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +72,7 @@ export const App = () => {
   const handleSignOutGoogle = async () => {
     await clearGoogleSession();
     setIsAuthenticatedGoogle(false);
-    setStatusMessage(lang === "es" ? "Sesión cerrada." : "Signed out of Google.");
+    setStatusMessage(t.signOutSuccess);
   };
 
   const handleInspectSheets = async (url: string): Promise<SheetTabInfo[]> => {
@@ -81,17 +87,23 @@ export const App = () => {
       }
       return meta.sheets;
     } catch (err: any) {
-      setErrorMessage(
-        err.message || (lang === "es" ? "No se pudieron leer las pestañas. Verifica el enlace." : "Could not read sheet pages. Please ensure link is valid."),
-      );
+      setErrorMessage(t.formatError(err, t.inspectError));
       return [];
     }
   };
 
-  const handleConnectSheet = async (url: string, tabName?: string) => {
-    setIsLoading(true);
+  const handleConnectSheet = async (
+    url: string,
+    tabName?: string,
+    refreshing = false,
+    quiet = false,
+  ): Promise<SheetFetchResult | undefined> => {
+    const request = ++latestLoad.current;
+    if (tabName) setSelectedTab(tabName);
+    loadInFlight.current = true;
+    if (!quiet) setIsLoading(true);
     setErrorMessage(null);
-    setStatusMessage(null);
+    if (!quiet) setStatusMessage(null);
     setActiveUrl(url);
 
     try {
@@ -99,78 +111,102 @@ export const App = () => {
       let result;
 
       if (token) {
-        result = await fetchPrivateSheetData(url, token, tabName || selectedTab);
+        result = await fetchPrivateSheetData(
+          url,
+          token,
+          tabName || selectedTab,
+        );
       } else {
         result = await fetchSheetData(url, tabName || selectedTab);
       }
 
+      if (request !== latestLoad.current) return;
       if (result.records.length === 0) {
+        if (refreshing) throw new Error(t.noRowsFound);
+        setRecords([]);
+        setColumns([]);
         setErrorMessage(t.noRowsFound);
         return;
       }
 
       setRecords(result.records);
+      setColumns(result.columns || []);
+      setHasCellColors(result.hasCellColors);
+      return result;
     } catch (err: any) {
-      setErrorMessage(err.message || (lang === "es" ? "Error al cargar la hoja de Google." : "Failed to load Google Sheet."));
+      if (request !== latestLoad.current) return;
+      if (!refreshing) {
+        setRecords([]);
+        setColumns([]);
+      }
+      setErrorMessage(t.formatError(err, t.loadError));
+      if (refreshing) throw err;
+      return undefined;
     } finally {
-      setIsLoading(false);
+      if (request === latestLoad.current) {
+        setIsLoading(false);
+        loadInFlight.current = false;
+      }
     }
   };
 
   const handleRefreshSheet = async () => {
     if (!activeUrl) return;
-    await handleConnectSheet(activeUrl, selectedTab);
+    return handleConnectSheet(activeUrl, selectedTab, true);
   };
+
+  const refreshRef = useRef(handleConnectSheet);
+  refreshRef.current = handleConnectSheet;
+  useEffect(() => {
+    if (!activeUrl) return;
+    const check = () => {
+      if (document.visibilityState === "hidden" || loadInFlight.current) return;
+      void refreshRef
+        .current(activeUrl, selectedTab, true, true)
+        .catch(() => {});
+    };
+    const timer = setInterval(check, 30000);
+    window.addEventListener("focus", check);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", check);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, [activeUrl, selectedTab]);
+
+  let sheetUrl: string | undefined;
+  let sourceKey: string | undefined;
+  if (activeUrl) {
+    const { spreadsheetId, gid } = extractSpreadsheetInfo(activeUrl);
+    const tabId =
+      availableTabs.find((tab) => tab.title === selectedTab)?.sheetId ?? gid;
+    sheetUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit${tabId !== undefined ? `#gid=${tabId}` : ""}`;
+    sourceKey = `${spreadsheetId}:${tabId ?? selectedTab}`;
+  }
 
   return (
     <div className={styles.scrollContainer}>
       <Rows spacing="2u">
-        {/* Header with Title and Language Switcher */}
-        <Box padding="2u">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <Rows spacing="0.5u">
-              <Title size="medium">{t.appTitle}</Title>
-              <Text size="small" tone="secondary">
-                {t.appSubtitle}
-              </Text>
-            </Rows>
-            {/* Subtle Language Pill Toggle */}
-            <div style={{ display: "flex", gap: "2px", backgroundColor: "#F1F5F9", padding: "2px", borderRadius: "5px" }}>
-              <button
-                type="button"
-                onClick={() => handleToggleLanguage("es")}
-                style={{
-                  background: lang === "es" ? "#FFFFFF" : "transparent",
-                  border: lang === "es" ? "1px solid #CBD5E1" : "none",
-                  borderRadius: "4px",
-                  padding: "2px 7px",
-                  fontSize: "11px",
-                  fontWeight: lang === "es" ? 700 : 500,
-                  color: lang === "es" ? "#0F172A" : "#64748B",
-                  cursor: "pointer",
-                }}
-              >
-                ES
-              </button>
-              <button
-                type="button"
-                onClick={() => handleToggleLanguage("en")}
-                style={{
-                  background: lang === "en" ? "#FFFFFF" : "transparent",
-                  border: lang === "en" ? "1px solid #CBD5E1" : "none",
-                  borderRadius: "4px",
-                  padding: "2px 7px",
-                  fontSize: "11px",
-                  fontWeight: lang === "en" ? 700 : 500,
-                  color: lang === "en" ? "#0F172A" : "#64748B",
-                  cursor: "pointer",
-                }}
-              >
-                EN
-              </button>
+        {/* Header */}
+        {records.length === 0 && (
+          <Box padding="2u">
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <Rows spacing="0.5u">
+                <Title size="medium">{t.appTitle}</Title>
+                <Text size="small" tone="secondary">
+                  {t.appSubtitle}
+                </Text>
+              </Rows>
             </div>
-          </div>
-        </Box>
+          </Box>
+        )}
 
         {/* Error Notification */}
         {errorMessage && (
@@ -193,7 +229,9 @@ export const App = () => {
         {/* Sheet Connection (Automatic upon selection) */}
         <SheetConnector
           t={t}
-          onConnect={handleConnectSheet}
+          onConnect={async (url, tab) => {
+            await handleConnectSheet(url, tab);
+          }}
           onInspectSheets={handleInspectSheets}
           onSignInGoogle={handleSignInGoogle}
           isAuthenticatedGoogle={isAuthenticatedGoogle}
@@ -201,6 +239,9 @@ export const App = () => {
           availableTabs={availableTabs}
           selectedTab={selectedTab}
           hasLoadedRecords={records.length > 0}
+          sheetUrl={sheetUrl}
+          onRefresh={handleRefreshSheet}
+          onError={setErrorMessage}
           onTabChange={(tab) => {
             setSelectedTab(tab);
             if (activeUrl) {
@@ -212,8 +253,12 @@ export const App = () => {
         {/* Schedule Table Actions & Summary */}
         {records.length > 0 && (
           <ScheduleTableManager
+            key={sourceKey}
             t={t}
             records={records}
+            columns={columns}
+            hasCellColors={hasCellColors}
+            sourceKey={sourceKey}
             sheetTitle={spreadsheetTitle}
             selectedTab={selectedTab}
             onRefresh={handleRefreshSheet}
@@ -240,13 +285,22 @@ export const App = () => {
               marginTop: "8px",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "6px", minWidth: 0 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                minWidth: 0,
+              }}
+            >
               <span
                 style={{
                   width: "7px",
                   height: "7px",
                   borderRadius: "50%",
-                  backgroundColor: isAuthenticatedGoogle ? "#16A34A" : "#94A3B8",
+                  backgroundColor: isAuthenticatedGoogle
+                    ? "#16A34A"
+                    : "#94A3B8",
                   flexShrink: 0,
                 }}
               />
@@ -256,25 +310,13 @@ export const App = () => {
             </div>
 
             {isAuthenticatedGoogle ? (
-              <button
-                type="button"
+              <Button
+                variant="tertiary"
                 onClick={handleSignOutGoogle}
                 disabled={isLoading}
-                style={{
-                  background: "none",
-                  border: "none",
-                  padding: "2px 6px",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  color: "#475569",
-                  cursor: "pointer",
-                  textDecoration: "underline",
-                  whiteSpace: "nowrap",
-                  flexShrink: 0,
-                }}
               >
                 {t.signOut}
-              </button>
+              </Button>
             ) : (
               <Button
                 variant="secondary"

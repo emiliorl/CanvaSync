@@ -1,8 +1,17 @@
 # CanvaSync: BIM Data Bridge (Inside Canva Extension)
 
+Product requirements and priorities are defined in [PROJECT_GOALS.md](PROJECT_GOALS.md).
+The intended workflow is faithful spreadsheet import, independent row/column resizing
+directly in Canva, and one-click updates to the existing table that preserve its design.
+The current prototype supports in-place updates for existing rows in newly linked
+imports, including row reordering by stable keys. Native table resizing and adding
+or deleting rows remain incomplete; see
+the implementation gaps and acceptance scenario in that document.
+
 A lightweight, zero-cost, privacy-first Canva side-panel application built using the official **Canva Apps SDK** (`@canva/design`, `@canva/asset`, `@canva/platform`, `@canva/app-ui-kit`).
 
-This extension allows interior design and architectural teams to pull live room schedules and 3D image assets from Google Sheets directly into active Canva slides without overriding custom color codes, bounding box dimensions, or element positions.
+This extension imports spreadsheet data and images into Canva. Its goal is to keep
+that content synchronized while preserving the design team's styling and dimensions.
 
 ---
 
@@ -10,7 +19,7 @@ This extension allows interior design and architectural teams to pull live room 
 
 - **100% Private Google Sheets Support:** Uses official Google OAuth 2.0 (Google Identity Services) and Google Sheets API v4. No need to make client spreadsheets public.
 - **Cross-Workspace Compatible:** Works across different Google domains, personal accounts, and corporate workspaces.
-- **In-Place Sync (`editContent`):** Update room areas, finishes, and specs without shifting element coordinates, resizing boxes, or wiping out manual designer adjustments.
+- **Target: style-preserving updates:** Update the existing linked table's data, images, and source row order without losing manual designer adjustments. This remains an implementation priority, not a completed capability.
 - **Selective 3D Render Upload:** Uploads external 3D renderings into Canva's active session media store with exact sizing.
 
 ---

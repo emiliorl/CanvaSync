@@ -10,7 +10,9 @@ jest.mock("@canva/user", () => ({
   auth: {
     initOauth: () => ({
       getAccessToken: jest.fn().mockResolvedValue(null),
-      requestAuthorization: jest.fn().mockResolvedValue({ status: "completed" }),
+      requestAuthorization: jest
+        .fn()
+        .mockResolvedValue({ status: "completed" }),
       deauthorize: jest.fn().mockResolvedValue(undefined),
     }),
   },
@@ -31,11 +33,14 @@ describe("CanvaSync BIM App", () => {
     jest.clearAllMocks();
   });
 
-  it("renders the app title and language options", () => {
+  it("uses the Canva locale without a separate language switch", () => {
     renderInTestProvider(<App />);
 
     expect(screen.getByText("CanvaSync")).toBeDefined();
-    expect(screen.getByText("ES")).toBeDefined();
-    expect(screen.getByText("EN")).toBeDefined();
+    expect(screen.queryByText("ES")).toBeNull();
+    expect(screen.queryByText("EN")).toBeNull();
+    expect(
+      screen.getByText("Bring spreadsheet tables and images into Canva"),
+    ).toBeDefined();
   });
 });

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { ExternalLink, RotateCw } from "lucide-react";
+import { requestOpenExternalUrl } from "@canva/platform";
 import {
   Button,
   FormField,
@@ -9,15 +11,17 @@ import {
   Text,
 } from "@canva/app-ui-kit";
 import {
-  SheetTabInfo,
-  DriveSpreadsheetItem,
+  type SheetTabInfo,
+  type DriveSpreadsheetItem,
   fetchUserSpreadsheets,
   getRecentSpreadsheets,
   saveRecentSpreadsheet,
   extractSpreadsheetInfo,
 } from "../services/googleSheetsService";
 import { getActiveGoogleToken } from "../services/googleAuthService";
-import { Translations } from "../utils/i18n";
+import type { Translations } from "../utils/i18n";
+
+const sheetUrlPlaceholder = "https://docs.google.com/spreadsheets/d/...";
 
 interface SheetConnectorProps {
   t: Translations;
@@ -30,6 +34,9 @@ interface SheetConnectorProps {
   selectedTab: string;
   onTabChange: (tab: string) => void;
   hasLoadedRecords: boolean;
+  sheetUrl?: string;
+  onRefresh: () => Promise<unknown>;
+  onError: (message: string) => void;
 }
 
 export const SheetConnector: React.FC<SheetConnectorProps> = ({
@@ -43,6 +50,9 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
   selectedTab,
   onTabChange,
   hasLoadedRecords,
+  sheetUrl,
+  onRefresh,
+  onError,
 }) => {
   const [url, setUrl] = useState<string>("");
   const [isInspecting, setIsInspecting] = useState<boolean>(false);
@@ -51,6 +61,18 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
   const [driveScopeMissing, setDriveScopeMissing] = useState<boolean>(false);
   const [selectedFileId, setSelectedFileId] = useState<string>("");
   const [showManualInput, setShowManualInput] = useState<boolean>(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const refresh = async () => {
+    if (refreshing || isLoading) return;
+    setRefreshing(true);
+    try {
+      await onRefresh();
+    } catch (error) {
+      onError(t.formatError(error, t.loadError));
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // When authenticated, auto-fetch the user's spreadsheets from Google Drive
   useEffect(() => {
@@ -108,7 +130,7 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
         const found = driveFiles.find((f) => f.id === fileId);
         saveRecentSpreadsheet({
           id: fileId,
-          title: found?.name || `Spreadsheet (${tabs.length} tabs)`,
+          title: found?.name || t.spreadsheetWithTabs(tabs.length),
           url: newUrl,
         });
         // Auto-connect immediately so user doesn't have to click an extra button
@@ -163,7 +185,7 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
     .forEach((s) => {
       fileOptions.push({
         value: s.id,
-        label: `${s.title} (Reciente)`,
+        label: `${s.title} (${t.recent})`,
       });
     });
 
@@ -178,6 +200,23 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
   }));
 
   const hasFilesToPick = driveFiles.length > 0 || recentList.length > 0;
+  const launchButton = (
+    <Button
+      variant="tertiary"
+      ariaLabel={t.openSheet}
+      tooltipLabel={t.openSheet}
+      icon={() => <ExternalLink size={20} />}
+      disabled={!sheetUrl || isLoading || isInspecting}
+      onClick={async () => {
+        if (!sheetUrl) return;
+        try {
+          await requestOpenExternalUrl({ url: sheetUrl });
+        } catch (error) {
+          onError(t.formatError(error, t.loadError));
+        }
+      }}
+    />
+  );
 
   return (
     <Box padding="2u">
@@ -212,15 +251,24 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
         {hasFilesToPick && !showManualInput && (
           <FormField
             label={t.selectSpreadsheet}
-            description={t.selectSpreadsheetDesc}
             control={(props) => (
-              <Select
-                {...props}
-                options={fileOptions}
-                value={selectedFileId}
-                onChange={(val) => handleSelectFile(val)}
-                disabled={isLoading || isDriveLoading}
-              />
+              <div
+                role="group"
+                aria-label={t.selectSpreadsheet}
+                style={{ display: "flex", alignItems: "center", gap: "4px" }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Select
+                    {...props}
+                    options={fileOptions}
+                    value={selectedFileId}
+                    onChange={(val) => handleSelectFile(val)}
+                    disabled={isLoading || isDriveLoading}
+                    stretch
+                  />
+                </div>
+                {launchButton}
+              </div>
             )}
           />
         )}
@@ -228,21 +276,12 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
         {/* Toggle to paste link manually */}
         {hasFilesToPick && (
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <button
-              type="button"
+            <Button
+              variant="tertiary"
               onClick={() => setShowManualInput(!showManualInput)}
-              style={{
-                background: "none",
-                border: "none",
-                fontSize: "11px",
-                color: "#64748B",
-                cursor: "pointer",
-                textDecoration: "underline",
-                padding: 0,
-              }}
             >
               {showManualInput ? t.backToList : t.pasteLinkManually}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -252,14 +291,23 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
             label={t.googleSheetLink}
             description={t.googleSheetLinkDesc}
             control={(props) => (
-              <TextInput
-                {...props}
-                type="url"
-                value={url}
-                onChange={(val) => setUrl(val)}
-                placeholder="https://docs.google.com/spreadsheets/d/..."
-                disabled={isLoading}
-              />
+              <div
+                role="group"
+                aria-label={t.googleSheetLink}
+                style={{ display: "flex", alignItems: "center", gap: "4px" }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <TextInput
+                    {...props}
+                    type="url"
+                    value={url}
+                    onChange={(val) => setUrl(val)}
+                    placeholder={sheetUrlPlaceholder}
+                    disabled={isLoading}
+                  />
+                </div>
+                {launchButton}
+              </div>
             )}
           />
         )}
@@ -268,15 +316,32 @@ export const SheetConnector: React.FC<SheetConnectorProps> = ({
         {tabOptions.length > 0 && (
           <FormField
             label={t.selectTab}
-            description={t.selectTabDesc}
             control={(props) => (
-              <Select
-                {...props}
-                options={tabOptions}
-                value={selectedTab || tabOptions[0]?.value}
-                onChange={(val) => onTabChange(val)}
-                disabled={isLoading}
-              />
+              <div
+                role="group"
+                aria-label={t.selectTab}
+                style={{ display: "flex", alignItems: "center", gap: "4px" }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <Select
+                    {...props}
+                    options={tabOptions}
+                    value={selectedTab || tabOptions[0]?.value}
+                    onChange={(val) => onTabChange(val)}
+                    disabled={isLoading || refreshing}
+                    stretch
+                  />
+                </div>
+                <Button
+                  variant="tertiary"
+                  ariaLabel={t.checkChanges}
+                  tooltipLabel={t.checkChanges}
+                  icon={() => <RotateCw size={20} />}
+                  onClick={refresh}
+                  disabled={isLoading || refreshing || !hasLoadedRecords}
+                  loading={refreshing}
+                />
+              </div>
             )}
           />
         )}
