@@ -11,12 +11,12 @@ const fixtures: Record<
 > = defineMessages({
   columns: {
     defaultMessage: "Column widths",
-    description: "CanvaSync: columnSizes",
+    description: "CellBridge: columnSizes",
   },
-  rows: { defaultMessage: "Row heights", description: "CanvaSync: rowSizes" },
+  rows: { defaultMessage: "Row heights", description: "CellBridge: rowSizes" },
   insert: {
     defaultMessage: "Insert table",
-    description: "CanvaSync: addTableToSlide",
+    description: "CellBridge: addTableToSlide",
   },
   count: {
     defaultMessage: "{count, plural, one {# row} other {# rows}}",
@@ -24,7 +24,7 @@ const fixtures: Record<
   },
   validation: {
     defaultMessage: "Select at least one column to import.",
-    description: "CanvaSync canvaCanvasService operation error",
+    description: "CellBridge canvaCanvasService operation error",
   },
 });
 

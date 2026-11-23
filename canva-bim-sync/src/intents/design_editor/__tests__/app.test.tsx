@@ -28,7 +28,7 @@ jest.mock("@canva/design", () => ({
   }),
 }));
 
-describe("CanvaSync BIM App", () => {
+describe("CellBridge BIM App", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -36,7 +36,7 @@ describe("CanvaSync BIM App", () => {
   it("uses the Canva locale without a separate language switch", () => {
     renderInTestProvider(<App />);
 
-    expect(screen.getByText("CanvaSync")).toBeDefined();
+    expect(screen.getByText("CellBridge")).toBeDefined();
     expect(screen.queryByText("ES")).toBeNull();
     expect(screen.queryByText("EN")).toBeNull();
     expect(

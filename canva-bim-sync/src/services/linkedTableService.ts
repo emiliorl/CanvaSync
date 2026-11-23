@@ -6,7 +6,7 @@ import type { BimRoomRecord, ImportLayout } from "../types/bim";
 import { buildEditableSchedule, getRecordCell } from "./canvaCanvasService";
 import { resolveImageSource } from "./imageSourceService";
 
-const PREFIX = "CanvaSync:v1:";
+const PREFIX = "CellBridge:v1:";
 const BLANK = "\u200b";
 
 // Canva permits only one open Design Editing session, including read-only
@@ -103,7 +103,7 @@ function findTable(page: DesignEditing.Page, sourceKey: string) {
     throw new LocalizedError(
       defineMessage({
         defaultMessage: "This page does not support linked tables.",
-        description: "CanvaSync linkedTableService operation error",
+        description: "CellBridge linkedTableService operation error",
       }),
       "This page does not support linked tables.",
     );
@@ -123,7 +123,7 @@ function findTable(page: DesignEditing.Page, sourceKey: string) {
           defineMessage({
             defaultMessage:
               "This linked table was ungrouped. Undo ungrouping before inserting or updating it.",
-            description: "CanvaSync linkedTableService operation error",
+            description: "CellBridge linkedTableService operation error",
           }),
           "This linked table was ungrouped. Undo ungrouping before inserting or updating it.",
         );
@@ -153,7 +153,7 @@ function findTable(page: DesignEditing.Page, sourceKey: string) {
       defineMessage({
         defaultMessage:
           "Multiple linked tables for this sheet are on this page. Remove the duplicate before updating.",
-        description: "CanvaSync linkedTableService operation error",
+        description: "CellBridge linkedTableService operation error",
       }),
       "Multiple linked tables for this sheet are on this page. Remove the duplicate before updating.",
     );
@@ -168,7 +168,7 @@ export async function readLinkedTable(sourceKey: string): Promise<TableState> {
         throw new LocalizedError(
           defineMessage({
             defaultMessage: "This page does not support linked tables.",
-            description: "CanvaSync linkedTableService operation error",
+            description: "CellBridge linkedTableService operation error",
           }),
           "This page does not support linked tables.",
         );
@@ -204,7 +204,7 @@ export async function readLinkedTable(sourceKey: string): Promise<TableState> {
     throw new LocalizedError(
       defineMessage({
         defaultMessage: "Could not check the current Canva page.",
-        description: "CanvaSync linkedTableService operation error",
+        description: "CellBridge linkedTableService operation error",
       }),
       "Could not check the current Canva page.",
     );
@@ -318,7 +318,7 @@ function rowKeys(records: BimRoomRecord[], keyColumn: string) {
       defineMessage({
         defaultMessage:
           "Choose a record key column with a unique, nonempty value in every row.",
-        description: "CanvaSync linkedTableService operation error",
+        description: "CellBridge linkedTableService operation error",
       }),
       "Choose a record key column with a unique, nonempty value in every row.",
     );
@@ -361,7 +361,7 @@ async function imageRefs(
           defineMessage({
             defaultMessage:
               "Image cells must contain an HTTP or HTTPS image URL.",
-            description: "CanvaSync linkedTableService operation error",
+            description: "CellBridge linkedTableService operation error",
           }),
           "Image cells must contain an HTTP or HTTPS image URL.",
         );
@@ -392,7 +392,7 @@ export async function insertLinkedTable(
     throw new LocalizedError(
       defineMessage({
         defaultMessage: "No rows to insert.",
-        description: "CanvaSync linkedTableService operation error",
+        description: "CellBridge linkedTableService operation error",
       }),
       "No rows to insert.",
     );
@@ -404,7 +404,7 @@ export async function insertLinkedTable(
       defineMessage({
         defaultMessage:
           "This sheet already has a table on this page. Use Update table.",
-        description: "CanvaSync linkedTableService operation error",
+        description: "CellBridge linkedTableService operation error",
       }),
       "This sheet already has a table on this page. Use Update table.",
     );
@@ -435,7 +435,7 @@ export async function insertLinkedTable(
       throw new LocalizedError(
         defineMessage({
           defaultMessage: "The page changed or is locked. Try inserting again.",
-          description: "CanvaSync linkedTableService operation error",
+          description: "CellBridge linkedTableService operation error",
         }),
         "The page changed or is locked. Try inserting again.",
       );
@@ -444,7 +444,7 @@ export async function insertLinkedTable(
         defineMessage({
           defaultMessage:
             "This sheet already has a table on this page. Use Update table.",
-          description: "CanvaSync linkedTableService operation error",
+          description: "CellBridge linkedTableService operation error",
         }),
         "This sheet already has a table on this page. Use Update table.",
       );
@@ -463,7 +463,7 @@ export async function insertLinkedTable(
         throw new LocalizedError(
           defineMessage({
             defaultMessage: "Could not create a table cell.",
-            description: "CanvaSync linkedTableService operation error",
+            description: "CellBridge linkedTableService operation error",
           }),
           "Could not create a table cell.",
         );
@@ -474,7 +474,7 @@ export async function insertLinkedTable(
         throw new LocalizedError(
           defineMessage({
             defaultMessage: "Invalid cell dimensions.",
-            description: "CanvaSync linkedTableService operation error",
+            description: "CellBridge linkedTableService operation error",
           }),
           "Invalid cell dimensions.",
         );
@@ -573,7 +573,7 @@ export async function updateLinkedTable(
     throw new LocalizedError(
       defineMessage({
         defaultMessage: "No linked table on this page. Insert the table first.",
-        description: "CanvaSync linkedTableService operation error",
+        description: "CellBridge linkedTableService operation error",
       }),
       "No linked table on this page. Insert the table first.",
     );
@@ -587,7 +587,7 @@ export async function updateLinkedTable(
       defineMessage({
         defaultMessage:
           "Record keys were added, removed, or changed. Keep existing keys stable when editing or reordering rows.",
-        description: "CanvaSync linkedTableService operation error",
+        description: "CellBridge linkedTableService operation error",
       }),
       "Record keys were added, removed, or changed. Keep existing keys stable when editing or reordering rows.",
     );
@@ -614,7 +614,7 @@ export async function updateLinkedTable(
         defineMessage({
           defaultMessage:
             "Column widths must be between 72 and 2000 pixels and belong to an imported column.",
-          description: "CanvaSync linkedTableService operation error",
+          description: "CellBridge linkedTableService operation error",
         }),
         "Column widths must be between 72 and 2000 pixels and belong to an imported column.",
       );
@@ -631,7 +631,7 @@ export async function updateLinkedTable(
         defineMessage({
           defaultMessage:
             "Row heights must be between 32 and 2000 pixels and belong to an existing record key.",
-          description: "CanvaSync linkedTableService operation error",
+          description: "CellBridge linkedTableService operation error",
         }),
         "Row heights must be between 32 and 2000 pixels and belong to an existing record key.",
       );
@@ -692,7 +692,7 @@ export async function updateLinkedTable(
           defineMessage({
             defaultMessage:
               "The page changed or is locked. Try updating again.",
-            description: "CanvaSync linkedTableService operation error",
+            description: "CellBridge linkedTableService operation error",
           }),
           "The page changed or is locked. Try updating again.",
         );
@@ -707,7 +707,7 @@ export async function updateLinkedTable(
           defineMessage({
             defaultMessage:
               "The linked table changed or is locked. Check the table and try again.",
-            description: "CanvaSync linkedTableService operation error",
+            description: "CellBridge linkedTableService operation error",
           }),
           "The linked table changed or is locked. Check the table and try again.",
         );
@@ -717,7 +717,7 @@ export async function updateLinkedTable(
           defineMessage({
             defaultMessage:
               "The table structure changed in Canva. Restore its cells before updating.",
-            description: "CanvaSync linkedTableService operation error",
+            description: "CellBridge linkedTableService operation error",
           }),
           "The table structure changed in Canva. Restore its cells before updating.",
         );
@@ -731,7 +731,7 @@ export async function updateLinkedTable(
           defineMessage({
             defaultMessage:
               "The linked table contains a locked or unsupported element.",
-            description: "CanvaSync linkedTableService operation error",
+            description: "CellBridge linkedTableService operation error",
           }),
           "The linked table contains a locked or unsupported element.",
         );
@@ -749,7 +749,7 @@ export async function updateLinkedTable(
           defineMessage({
             defaultMessage:
               "Set the table rotation to zero before reordering or resizing the table.",
-            description: "CanvaSync linkedTableService operation error",
+            description: "CellBridge linkedTableService operation error",
           }),
           "Set the table rotation to zero before reordering or resizing the table.",
         );
@@ -767,7 +767,7 @@ export async function updateLinkedTable(
             throw new LocalizedError(
               defineMessage({
                 defaultMessage: "The linked row mapping is incomplete.",
-                description: "CanvaSync linkedTableService operation error",
+                description: "CellBridge linkedTableService operation error",
               }),
               "The linked row mapping is incomplete.",
             );
@@ -787,7 +787,7 @@ export async function updateLinkedTable(
               defineMessage({
                 defaultMessage:
                   "A linked cell was removed, moved in the layer order, or locked.",
-                description: "CanvaSync linkedTableService operation error",
+                description: "CellBridge linkedTableService operation error",
               }),
               "A linked cell was removed, moved in the layer order, or locked.",
             );
@@ -799,7 +799,7 @@ export async function updateLinkedTable(
               defineMessage({
                 defaultMessage:
                   "A cell was edited in Canva or its layer order changed. Restore its previous value before updating.",
-                description: "CanvaSync linkedTableService operation error",
+                description: "CellBridge linkedTableService operation error",
               }),
               "A cell was edited in Canva or its layer order changed. Restore its previous value before updating.",
             );
@@ -813,7 +813,7 @@ export async function updateLinkedTable(
                 defineMessage({
                   defaultMessage:
                     "An image was edited in Canva or its layer order changed. Restore it before updating.",
-                  description: "CanvaSync linkedTableService operation error",
+                  description: "CellBridge linkedTableService operation error",
                 }),
                 "An image was edited in Canva or its layer order changed. Restore it before updating.",
               );
@@ -824,7 +824,7 @@ export async function updateLinkedTable(
               defineMessage({
                 defaultMessage:
                   "A table cell background was removed or locked.",
-                description: "CanvaSync linkedTableService operation error",
+                description: "CellBridge linkedTableService operation error",
               }),
               "A table cell background was removed or locked.",
             );
@@ -862,7 +862,7 @@ export async function updateLinkedTable(
                 defineMessage({
                   defaultMessage:
                     "Updated text may not fit its Canva cell. Increase that row's height before updating.",
-                  description: "CanvaSync linkedTableService operation error",
+                  description: "CellBridge linkedTableService operation error",
                 }),
                 "Updated text may not fit its Canva cell. Increase that row's height before updating.",
               );
@@ -900,7 +900,7 @@ export async function updateLinkedTable(
               defineMessage({
                 defaultMessage:
                   "The column header may not fit. Choose a wider column.",
-                description: "CanvaSync linkedTableService operation error",
+                description: "CellBridge linkedTableService operation error",
               }),
               "The column header may not fit. Choose a wider column.",
             );
@@ -916,7 +916,7 @@ export async function updateLinkedTable(
             defineMessage({
               defaultMessage:
                 "Could not access the linked table's editable cells.",
-              description: "CanvaSync linkedTableService operation error",
+              description: "CellBridge linkedTableService operation error",
             }),
             "Could not access the linked table's editable cells.",
           );
@@ -935,7 +935,7 @@ export async function updateLinkedTable(
           throw new LocalizedError(
             defineMessage({
               defaultMessage: "This cell border cannot be resized safely.",
-              description: "CanvaSync linkedTableService operation error",
+              description: "CellBridge linkedTableService operation error",
             }),
             "This cell border cannot be resized safely.",
           );
@@ -993,7 +993,7 @@ export async function updateLinkedTable(
           throw new LocalizedError(
             defineMessage({
               defaultMessage: "Could not resize the row cell.",
-              description: "CanvaSync linkedTableService operation error",
+              description: "CellBridge linkedTableService operation error",
             }),
             "Could not resize the row cell.",
           );
@@ -1004,7 +1004,7 @@ export async function updateLinkedTable(
           throw new LocalizedError(
             defineMessage({
               defaultMessage: "Could not locate the row cell.",
-              description: "CanvaSync linkedTableService operation error",
+              description: "CellBridge linkedTableService operation error",
             }),
             "Could not locate the row cell.",
           );
@@ -1073,7 +1073,7 @@ export async function updateLinkedTable(
           throw new LocalizedError(
             defineMessage({
               defaultMessage: "Could not resize the column text.",
-              description: "CanvaSync linkedTableService operation error",
+              description: "CellBridge linkedTableService operation error",
             }),
             "Could not resize the column text.",
           );
@@ -1082,7 +1082,7 @@ export async function updateLinkedTable(
           throw new LocalizedError(
             defineMessage({
               defaultMessage: "Could not locate the column text.",
-              description: "CanvaSync linkedTableService operation error",
+              description: "CellBridge linkedTableService operation error",
             }),
             "Could not locate the column text.",
           );
@@ -1099,7 +1099,7 @@ export async function updateLinkedTable(
             throw new LocalizedError(
               defineMessage({
                 defaultMessage: "The table header structure changed.",
-                description: "CanvaSync linkedTableService operation error",
+                description: "CellBridge linkedTableService operation error",
               }),
               "The table header structure changed.",
             );
@@ -1224,7 +1224,7 @@ export async function updateLinkedTable(
           defineMessage({
             defaultMessage:
               "Could not locate the table connection after ungrouping.",
-            description: "CanvaSync linkedTableService operation error",
+            description: "CellBridge linkedTableService operation error",
           }),
           "Could not locate the table connection after ungrouping.",
         );

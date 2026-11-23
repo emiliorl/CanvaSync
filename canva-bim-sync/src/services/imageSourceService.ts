@@ -9,7 +9,7 @@ const errors = defineMessages({
     description: "Invalid Google Drive image link",
   },
   signIn: {
-    defaultMessage: "Sign in to Google in CanvaSync to load Drive images.",
+    defaultMessage: "Sign in to Google in CellBridge to load Drive images.",
     description: "Google sign-in required for Drive image import",
   },
   denied: {
@@ -40,7 +40,7 @@ const errors = defineMessages({
 });
 const fallback = {
   link: "Use a Google Drive file link, not a folder link.",
-  signIn: "Sign in to Google in CanvaSync to load Drive images.",
+  signIn: "Sign in to Google in CellBridge to load Drive images.",
   denied:
     "Google Drive denied access to this image. Sign in again and allow Drive access, and check that the file is shared with your Google account.",
   missing:

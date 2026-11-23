@@ -1,4 +1,4 @@
-# CanvaSync: BIM Data Bridge (Inside Canva Extension)
+# CellBridge: BIM Data Bridge (Inside Canva Extension)
 
 Product requirements and priorities are defined in [PROJECT_GOALS.md](PROJECT_GOALS.md).
 The intended workflow is faithful spreadsheet import, independent row/column resizing
@@ -27,7 +27,7 @@ that content synchronized while preserving the design team's styling and dimensi
 ## 📁 Project Structure
 
 ```
-CanvaSync/
+CellBridge/
 ├── inside_canva_extension_architecture_plan.md   # Architectural blueprint & specification
 ├── canva-bim-sync/                              # Canva extension source code
 │   ├── canva-app.json                           # App manifest & permissions

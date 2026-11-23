@@ -634,13 +634,13 @@ describe("linked Canva tables", () => {
     const children = canvas.elements[0].contents.toArray();
     const marker = children[children.length - 1];
     const saved = JSON.parse(
-      marker.text.readPlaintext().slice("CanvaSync:v1:".length),
+      marker.text.readPlaintext().slice("CellBridge:v1:".length),
     );
     delete saved.renderingVersion;
     delete saved.cellKeys;
     marker.transparency = 0;
     canvas.editAsUser(() =>
-      marker.text.replaceText({}, "CanvaSync:v1:" + JSON.stringify(saved)),
+      marker.text.replaceText({}, "CellBridge:v1:" + JSON.stringify(saved)),
     );
     children[11].transparency = 1;
     await updateLinkedTable(options.sourceKey, records);
@@ -912,11 +912,11 @@ describe("linked Canva tables", () => {
     const children = canvas.elements[0].contents.toArray();
     const marker = children[children.length - 1];
     const legacy = JSON.parse(
-      marker.text.readPlaintext().slice("CanvaSync:v1:".length),
+      marker.text.readPlaintext().slice("CellBridge:v1:".length),
     );
     delete legacy.sourceColors;
     canvas.editAsUser(() =>
-      marker.text.replaceText({}, "CanvaSync:v1:" + JSON.stringify(legacy)),
+      marker.text.replaceText({}, "CellBridge:v1:" + JSON.stringify(legacy)),
     );
     canvas.elements[0].contents.toArray()[8].fill.colorContainer.ref.color =
       "#abcdef";

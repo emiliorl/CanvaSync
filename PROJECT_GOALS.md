@@ -1,4 +1,4 @@
-# CanvaSync: Purpose and Product Goals
+# CellBridge: Purpose and Product Goals
 
 Updated: 2026-11-06
 
@@ -19,7 +19,7 @@ is implemented today.
 ## Core priorities
 
 All three requirements are essential. Import alone does not fulfill the purpose
-of CanvaSync.
+of CellBridge.
 
 ### 1. Import the spreadsheet faithfully
 
@@ -47,7 +47,7 @@ are an interim tool, not completion of this requirement.
 
 ### 3. Update the existing table with one button while preserving its design
 
-After editing Google Sheets, the user clicks **Update data** in CanvaSync. The app
+After editing Google Sheets, the user clicks **Update data** in CellBridge. The app
 fetches the latest spreadsheet content and updates the already imported table.
 
 - Update changed text and other imported field values in the corresponding cells.
@@ -108,7 +108,7 @@ to a different record because its spreadsheet row number changed.
    row order, with no duplicate table. Verify customized typography, borders, and
    dimensions remain associated with the same records, including the reordered row.
    Source colors replace Canva cell-fill overrides.
-7. Close and reopen CanvaSync, make another source change, and repeat the update.
+7. Close and reopen CellBridge, make another source change, and repeat the update.
 
 The core workflow is complete only when this scenario passes in the live Canva editor.
 
@@ -128,7 +128,7 @@ The core workflow is complete only when this scenario passes in the live Canva e
 At the time this document was written:
 
 - Import uses editable shapes, text boxes, and pictures in a group.
-- Independent row and column dimensions can be changed in CanvaSync before and
+- Independent row and column dimensions can be changed in CellBridge before and
   after insertion. Existing column widths and row heights are read from the design;
   edits in Table dimensions are applied with Update table. Column changes resize
   headers, text boxes, backgrounds, and image slots together and reposition adjacent

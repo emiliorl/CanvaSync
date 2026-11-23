@@ -84,7 +84,7 @@ export async function requestGoogleAccessToken(
         defineMessage({
           defaultMessage:
             "Google login completed, but Canva could not retrieve the access token. Please verify the Token URL is https://oauth2.googleapis.com/token and Client Secret is correct.",
-          description: "CanvaSync googleAuthService operation error",
+          description: "CellBridge googleAuthService operation error",
         }),
         "Google login completed, but Canva could not retrieve the access token. Please verify the Token URL is https://oauth2.googleapis.com/token and Client Secret is correct.",
       );
@@ -94,7 +94,7 @@ export async function requestGoogleAccessToken(
       throw new LocalizedError(
         defineMessage({
           defaultMessage: "Authorization was cancelled.",
-          description: "CanvaSync googleAuthService operation error",
+          description: "CellBridge googleAuthService operation error",
         }),
         "Authorization was cancelled.",
       );
@@ -103,7 +103,7 @@ export async function requestGoogleAccessToken(
     throw new LocalizedError(
       defineMessage({
         defaultMessage: "Authorization flow did not complete.",
-        description: "CanvaSync googleAuthService operation error",
+        description: "CellBridge googleAuthService operation error",
       }),
       "Authorization flow did not complete.",
     );
@@ -119,7 +119,7 @@ export async function requestGoogleAccessToken(
         defineMessage({
           defaultMessage:
             "Canva OAuth is not configured in Developer Portal. Please configure Google OAuth in your Canva Developer Portal under 'Authentication'.",
-          description: "CanvaSync googleAuthService operation error",
+          description: "CellBridge googleAuthService operation error",
         }),
         "Canva OAuth is not configured in Developer Portal. Please configure Google OAuth in your Canva Developer Portal under 'Authentication'.",
       );

@@ -1,6 +1,6 @@
 # Native Canva localization
 
-CanvaSync uses `AppI18nProvider` at its root. The provider reads Canva's language
+CellBridge uses `AppI18nProvider` at its root. The provider reads Canva's language
 setting and platform-supplied messages. There is no separate language switch, browser
 language override, or custom production translation catalog.
 

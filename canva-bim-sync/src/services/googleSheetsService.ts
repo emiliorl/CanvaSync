@@ -32,7 +32,7 @@ export interface SavedSpreadsheet {
   lastOpened: number;
 }
 
-const RECENT_SHEETS_KEY = "canvasync_recent_sheets";
+const RECENT_SHEETS_KEY = "cellbridge_recent_sheets";
 
 export function getRecentSpreadsheets(): SavedSpreadsheet[] {
   try {
@@ -104,7 +104,7 @@ export function extractSpreadsheetInfo(sheetUrl: string): {
       defineMessage({
         defaultMessage:
           "Invalid Google Sheets URL. Please paste a valid link (e.g. https://docs.google.com/spreadsheets/d/...)",
-        description: "CanvaSync googleSheetsService operation error",
+        description: "CellBridge googleSheetsService operation error",
       }),
       "Invalid Google Sheets URL. Please paste a valid link (e.g. https://docs.google.com/spreadsheets/d/...)",
     );
@@ -158,7 +158,7 @@ export async function fetchSpreadsheetMetadata(
         throw new LocalizedError(
           defineMessage({
             defaultMessage: "Google session expired. Please sign in again.",
-            description: "CanvaSync googleSheetsService operation error",
+            description: "CellBridge googleSheetsService operation error",
           }),
           "Google session expired. Please sign in again.",
         );
@@ -167,7 +167,7 @@ export async function fetchSpreadsheetMetadata(
           defineMessage({
             defaultMessage:
               "Access denied. Your Google account does not have permission to view this sheet.",
-            description: "CanvaSync googleSheetsService operation error",
+            description: "CellBridge googleSheetsService operation error",
           }),
           "Access denied. Your Google account does not have permission to view this sheet.",
         );
@@ -611,7 +611,7 @@ export async function fetchSheetData(
     throw new LocalizedError(
       defineMessage({
         defaultMessage: "Could not retrieve sheet data.",
-        description: "CanvaSync googleSheetsService operation error",
+        description: "CellBridge googleSheetsService operation error",
       }),
       "Could not retrieve sheet data.",
     );
@@ -626,7 +626,7 @@ export async function fetchSheetData(
       defineMessage({
         defaultMessage:
           "This sheet is private. Please sign in with Google above to access it.",
-        description: "CanvaSync googleSheetsService operation error",
+        description: "CellBridge googleSheetsService operation error",
       }),
       "This sheet is private. Please sign in with Google above to access it.",
     );

@@ -18,259 +18,259 @@ const messages = defineMessages({
     description: "Imported image count",
   },
   appTitle: {
-    defaultMessage: "CanvaSync",
-    description: "CanvaSync: appTitle",
+    defaultMessage: "CellBridge",
+    description: "CellBridge: appTitle",
   },
   appSubtitle: {
     defaultMessage: "Bring spreadsheet tables and images into Canva",
-    description: "CanvaSync: appSubtitle",
+    description: "CellBridge: appSubtitle",
   },
   selectSpreadsheet: {
     defaultMessage: "Select Spreadsheet",
-    description: "CanvaSync: selectSpreadsheet",
+    description: "CellBridge: selectSpreadsheet",
   },
   selectSpreadsheetDesc: {
     defaultMessage: "Choose a spreadsheet from your Google account",
-    description: "CanvaSync: selectSpreadsheetDesc",
+    description: "CellBridge: selectSpreadsheetDesc",
   },
   choosePlaceholder: {
     defaultMessage: "-- Select a Google Spreadsheet --",
-    description: "CanvaSync: choosePlaceholder",
+    description: "CellBridge: choosePlaceholder",
   },
   loadingSpreadsheets: {
     defaultMessage: "Loading Google Spreadsheets...",
-    description: "CanvaSync: loadingSpreadsheets",
+    description: "CellBridge: loadingSpreadsheets",
   },
   selectTab: {
     defaultMessage: "Select sheet tab",
-    description: "CanvaSync: selectTab",
+    description: "CellBridge: selectTab",
   },
   selectTabDesc: {
     defaultMessage: "Choose the spreadsheet tab to import",
-    description: "CanvaSync: selectTabDesc",
+    description: "CellBridge: selectTabDesc",
   },
   pasteLinkManually: {
     defaultMessage: "Paste link manually",
-    description: "CanvaSync: pasteLinkManually",
+    description: "CellBridge: pasteLinkManually",
   },
   backToList: {
     defaultMessage: "Back to spreadsheet list",
-    description: "CanvaSync: backToList",
+    description: "CellBridge: backToList",
   },
   googleSheetLink: {
     defaultMessage: "Google Sheet Link",
-    description: "CanvaSync: googleSheetLink",
+    description: "CellBridge: googleSheetLink",
   },
   googleSheetLinkDesc: {
     defaultMessage: "Paste a link to your Google spreadsheet",
-    description: "CanvaSync: googleSheetLinkDesc",
+    description: "CellBridge: googleSheetLinkDesc",
   },
   grantDriveTitle: {
     defaultMessage:
       "To select spreadsheets from your Google Drive directly in Canva:",
-    description: "CanvaSync: grantDriveTitle",
+    description: "CellBridge: grantDriveTitle",
   },
   grantDriveAction: {
     defaultMessage: "Grant Drive File Access",
-    description: "CanvaSync: grantDriveAction",
+    description: "CellBridge: grantDriveAction",
   },
   connected: {
     defaultMessage: "Connected",
-    description: "CanvaSync: connected",
+    description: "CellBridge: connected",
   },
   notConnected: {
     defaultMessage: "Google Account",
-    description: "CanvaSync: notConnected",
+    description: "CellBridge: notConnected",
   },
   signOut: {
     defaultMessage: "Sign out",
-    description: "CanvaSync: signOut",
+    description: "CellBridge: signOut",
   },
   signIn: {
     defaultMessage: "Sign in with Google",
-    description: "CanvaSync: signIn",
+    description: "CellBridge: signIn",
   },
   slideUpToDate: {
     defaultMessage: "Up to date",
-    description: "CanvaSync: slideUpToDate",
+    description: "CellBridge: slideUpToDate",
   },
   updatesAvailable: {
     defaultMessage: "Changes ready",
-    description: "CanvaSync: updatesAvailable",
+    description: "CellBridge: updatesAvailable",
   },
   notInserted: {
     defaultMessage: "Not imported yet",
-    description: "CanvaSync: notInserted",
+    description: "CellBridge: notInserted",
   },
   syncedAt: {
     defaultMessage: "Synced",
-    description: "CanvaSync: syncedAt",
+    description: "CellBridge: syncedAt",
   },
   revitId: {
     defaultMessage: "Revit ID",
-    description: "CanvaSync: revitId",
+    description: "CellBridge: revitId",
   },
   space: {
     defaultMessage: "Space",
-    description: "CanvaSync: space",
+    description: "CellBridge: space",
   },
   finishSpec: {
     defaultMessage: "Finish Spec",
-    description: "CanvaSync: finishSpec",
+    description: "CellBridge: finishSpec",
   },
   area: {
     defaultMessage: "Area",
-    description: "CanvaSync: area",
+    description: "CellBridge: area",
   },
   moreRows: {
     defaultMessage: "more rows",
-    description: "CanvaSync: moreRows",
+    description: "CellBridge: moreRows",
   },
   rows: {
     defaultMessage: "rows",
-    description: "CanvaSync: rows",
+    description: "CellBridge: rows",
   },
   row: {
     defaultMessage: "row",
-    description: "CanvaSync: row",
+    description: "CellBridge: row",
   },
   includeMaterialImages: {
     defaultMessage: "Include images",
-    description: "CanvaSync: includeMaterialImages",
+    description: "CellBridge: includeMaterialImages",
   },
   addTableToSlide: {
     defaultMessage: "Insert table",
-    description: "CanvaSync: addTableToSlide",
+    description: "CellBridge: addTableToSlide",
   },
   reinsertTable: {
     defaultMessage: "Insert updated copy",
-    description: "CanvaSync: reinsertTable",
+    description: "CellBridge: reinsertTable",
   },
   tableUpToDate: {
     defaultMessage: "Imported data is current",
-    description: "CanvaSync: tableUpToDate",
+    description: "CellBridge: tableUpToDate",
   },
   syncUpdates: {
     defaultMessage: "Sync Updates from Sheet",
-    description: "CanvaSync: syncUpdates",
+    description: "CellBridge: syncUpdates",
   },
   syncFromSheet: {
     defaultMessage: "Sync Table from Sheet",
-    description: "CanvaSync: syncFromSheet",
+    description: "CellBridge: syncFromSheet",
   },
   readingSheet: {
     defaultMessage: "Reading Sheet...",
-    description: "CanvaSync: readingSheet",
+    description: "CellBridge: readingSheet",
   },
   connectSchedule: {
     defaultMessage: "Load table",
-    description: "CanvaSync: connectSchedule",
+    description: "CellBridge: connectSchedule",
   },
   noRowsFound: {
     defaultMessage:
       "No data rows found. Add column headers in the first row and data below them.",
-    description: "CanvaSync: noRowsFound",
+    description: "CellBridge: noRowsFound",
   },
   columnsToImport: {
     defaultMessage: "Columns to import",
-    description: "CanvaSync: columnsToImport",
+    description: "CellBridge: columnsToImport",
   },
   chooseColumns: {
     defaultMessage:
       "Search and select columns. Their import order is shown below.",
-    description: "CanvaSync: chooseColumns",
+    description: "CellBridge: chooseColumns",
   },
   columnWidth: {
     defaultMessage: "Width (px)",
-    description: "CanvaSync: columnWidth",
+    description: "CellBridge: columnWidth",
   },
   rowHeight: {
     defaultMessage: "Height (px)",
-    description: "CanvaSync: rowHeight",
+    description: "CellBridge: rowHeight",
   },
   rowSizes: {
     defaultMessage: "Row heights",
-    description: "CanvaSync: rowSizes",
+    description: "CellBridge: rowSizes",
   },
   columnSizes: {
     defaultMessage: "Column widths",
-    description: "CanvaSync: columnSizes",
+    description: "CellBridge: columnSizes",
   },
   importSettings: {
     defaultMessage: "Table dimensions",
-    description: "CanvaSync: importSettings",
+    description: "CellBridge: importSettings",
   },
   refreshData: {
     defaultMessage: "Refresh spreadsheet data",
-    description: "CanvaSync: refreshData",
+    description: "CellBridge: refreshData",
   },
   layoutHint: {
     defaultMessage:
       "Set column widths and row heights. You can adjust them here after inserting.",
-    description: "CanvaSync: layoutHint",
+    description: "CellBridge: layoutHint",
   },
   rowHeightHint: {
     defaultMessage:
       "Rows expand automatically to fit longer text. Your height sets the minimum.",
-    description: "CanvaSync: rowHeightHint",
+    description: "CellBridge: rowHeightHint",
   },
   selectColumnsError: {
     defaultMessage: "Select at least one column to import.",
-    description: "CanvaSync: selectColumnsError",
+    description: "CellBridge: selectColumnsError",
   },
   moveUp: {
     defaultMessage: "Move column left",
-    description: "CanvaSync: moveUp",
+    description: "CellBridge: moveUp",
   },
   moveDown: {
     defaultMessage: "Move column right",
-    description: "CanvaSync: moveDown",
+    description: "CellBridge: moveDown",
   },
   signInSuccess: {
     defaultMessage: "Google sign-in completed.",
-    description: "CanvaSync: signInSuccess",
+    description: "CellBridge: signInSuccess",
   },
   signOutSuccess: {
     defaultMessage: "Signed out of Google.",
-    description: "CanvaSync: signOutSuccess",
+    description: "CellBridge: signOutSuccess",
   },
   signInError: {
     defaultMessage: "Google sign-in failed.",
-    description: "CanvaSync: signInError",
+    description: "CellBridge: signInError",
   },
   inspectError: {
     defaultMessage: "Could not read spreadsheet tabs. Check the link.",
-    description: "CanvaSync: inspectError",
+    description: "CellBridge: inspectError",
   },
   loadError: {
     defaultMessage: "Could not load the spreadsheet.",
-    description: "CanvaSync: loadError",
+    description: "CellBridge: loadError",
   },
   importError: {
     defaultMessage: "Could not insert the table.",
-    description: "CanvaSync: importError",
+    description: "CellBridge: importError",
   },
   refreshSuccess: {
     defaultMessage:
       "Spreadsheet data refreshed. Insert an updated copy to apply changes.",
-    description: "CanvaSync: refreshSuccess",
+    description: "CellBridge: refreshSuccess",
   },
   recent: {
     defaultMessage: "Recent",
-    description: "CanvaSync: recent",
+    description: "CellBridge: recent",
   },
   rowLabel: {
     defaultMessage: "Row {number}",
-    description: "CanvaSync: rowLabel",
+    description: "CellBridge: rowLabel",
   },
   addedSuccess: {
     defaultMessage: "Inserted table ({rowsLabel}, {imagesLabel}).",
-    description: "CanvaSync: addedSuccess",
+    description: "CellBridge: addedSuccess",
   },
   syncSuccess: {
     defaultMessage:
       "Updated {updates, plural, one {# text element} other {# text elements}}.",
-    description: "CanvaSync: syncSuccess",
+    description: "CellBridge: syncSuccess",
   },
 });
 

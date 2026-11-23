@@ -1,6 +1,6 @@
 {
   "private": true,
-  "name": "canva-bim-sync",
+  "name": "cellbridge",
   "scripts": {
     "build": "npx @canva/cli apps build",
     "format": "prettier '**/*.{css,ts,tsx}' --no-config --write",

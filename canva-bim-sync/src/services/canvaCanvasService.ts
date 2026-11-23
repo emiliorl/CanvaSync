@@ -125,7 +125,7 @@ export function buildEditableSchedule(
     throw new LocalizedError(
       defineMessage({
         defaultMessage: "Select at least one column to import.",
-        description: "CanvaSync canvaCanvasService operation error",
+        description: "CellBridge canvaCanvasService operation error",
       }),
       "Select at least one column to import.",
     );
@@ -227,7 +227,7 @@ export async function injectScheduleTable(
     throw new LocalizedError(
       defineMessage({
         defaultMessage: "No schedule rows to insert.",
-        description: "CanvaSync canvaCanvasService operation error",
+        description: "CellBridge canvaCanvasService operation error",
       }),
       "No schedule rows to insert.",
     );
